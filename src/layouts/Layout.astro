@@ -1,0 +1,33 @@
+---
+const { title } = Astro.props;
+
+import styles from './Layout.module.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Tring Poker Club | {title}</title>
+  </head>
+  <body class={styles.body}>
+    <header class={styles.header}>
+      <div class={styles.logo}>Tring Poker Club</div>
+      <nav class={styles.nav}>
+        <!-- <a class={styles.navLink} href="/">Home</a>
+        <a class={styles.navLink} href="/players">Players</a> -->
+      </nav>
+    </header>
+    <main class={styles.main}>
+      <slot />
+    </main>
+    <footer class={styles.footer}>
+      <p>
+        &copy; {new Date().getFullYear()} Tring Poker Club. All rights reserved.
+      </p>
+    </footer>
+  </body>
+</html>

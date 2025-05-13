@@ -1,0 +1,50 @@
+---
+import Layout from '@layouts/Layout.astro';
+import type { MarkdownInstance } from 'astro';
+import type { PlayerFrontmatter } from '../../types/player';
+
+export async function getStaticPaths() {
+  const playerFiles = import.meta.glob('../../content/players/*.md', {
+    eager: true,
+  }) as Record<string, MarkdownInstance<PlayerFrontmatter>>;
+  return Object.entries(playerFiles).map(([_, { frontmatter }]) => ({
+    params: { slug: frontmatter.slug },
+  }));
+}
+
+const { slug } = Astro.params as { slug: string };
+const playerFiles = import.meta.glob('../../content/players/*.md', {
+  eager: true,
+}) as Record<string, MarkdownInstance<PlayerFrontmatter>>;
+
+const playersBySlug = Object.values(playerFiles).reduce(
+  (acc, file) => {
+    acc[file.frontmatter.slug] = file;
+    return acc;
+  },
+  {} as Record<string, MarkdownInstance<PlayerFrontmatter>>,
+);
+
+const playerData = playersBySlug[slug];
+
+if (!playerData) {
+  throw new Error('Player not found');
+}
+
+const { frontmatter, Content } = playerData;
+---
+
+<Layout title={`${frontmatter.firstName} ${frontmatter.lastName}`}>
+  <h1>
+    {frontmatter.firstName} "{frontmatter.knownAs}" {frontmatter.lastName}
+  </h1>
+  <img
+    src={frontmatter.image}
+    alt={`${frontmatter.firstName} ${frontmatter.lastName}`}
+    width="200"
+  />
+  <article>
+    <Content />
+  </article>
+  <a href="/players">Back to Players</a>
+</Layout>

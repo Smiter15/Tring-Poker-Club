@@ -1,0 +1,32 @@
+---
+import Layout from '@layouts/Layout.astro';
+---
+
+<style>
+  .hero {
+    background: url('/images/hero.webp') center/cover no-repeat;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    margin: 0;
+  }
+  .hero h1 {
+    font-size: 3rem;
+    margin: 0.5rem 0;
+  }
+  .hero p {
+    font-size: 1.25rem;
+    opacity: 0.9;
+  }
+</style>
+
+<Layout title="Home">
+  <div class="hero">
+    <h1>Tring Poker Club</h1>
+    <p>Our new site is on its way. Stay tuned!</p>
+  </div>
+</Layout>

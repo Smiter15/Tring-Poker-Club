@@ -1,0 +1,37 @@
+---
+import Layout from '@layouts/Layout.astro';
+import type { MarkdownInstance } from 'astro';
+import type { PlayerFrontmatter } from '../../types/player';
+
+const playerFiles = import.meta.glob('../../content/players/*.md', {
+  eager: true,
+}) as Record<string, MarkdownInstance<PlayerFrontmatter>>;
+
+const players = Object.values(playerFiles).map((player) => player.frontmatter);
+---
+
+<Layout title="Players">
+  <h1>Players</h1>
+  <ul>
+    {
+      players.map((player) => (
+        <li>
+          <a href={`/players/${player.slug}`}>
+            <img
+              src={player.image}
+              alt={`${player.firstName} ${player.lastName}`}
+              width="100"
+            />
+            <div>
+              <strong>{player.knownAs}</strong>
+              <p>
+                {player.firstName} {player.lastName}
+              </p>
+            </div>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <a href="/">Back Home</a>
+</Layout>
