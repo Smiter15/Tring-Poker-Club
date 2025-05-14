@@ -1,0 +1,32 @@
+---
+import Layout from '@layouts/Layout.astro';
+import type { MarkdownInstance } from 'astro';
+
+import styles from './Seasons.module.css';
+
+import type { SeasonFrontmatter } from '../../types/season';
+
+const seasonFiles = import.meta.glob('../../content/seasons/*.md', {
+  eager: true,
+}) as Record<string, MarkdownInstance<SeasonFrontmatter>>;
+
+const seasons = Object.values(seasonFiles).map((season) => season.frontmatter);
+---
+
+<Layout title="Seasons">
+  <div class={styles.container}>
+    <h1>Seasons</h1>
+    <ul>
+      {
+        seasons.map((season) => (
+          <li>
+            <a href={`/seasons/${season.slug}`}>
+              <strong>Season {season.name}</strong>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <a href="/">Back Home</a>
+  </div>
+</Layout>

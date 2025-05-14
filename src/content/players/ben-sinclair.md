@@ -1,4 +1,5 @@
 ---
+id: 2
 slug: ben-sinclair
 firstName: Ben
 lastName: Sinclair

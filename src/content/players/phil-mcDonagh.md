@@ -1,9 +1,10 @@
 ---
-slug: ben-mcdonagh
-firstName: Ben
+id: 3
+slug: phil-mcdonagh
+firstName: Phil
 lastName: McDonagh
-image: /images/players/ben.jpg
+image: /images/players/phil.jpg
 knownAs: Sausage
 ---
 
-Ben likes sausages
+Phil likes sausages

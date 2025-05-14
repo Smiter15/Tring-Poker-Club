@@ -1,0 +1,32 @@
+---
+import Layout from '@layouts/Layout.astro';
+import type { MarkdownInstance } from 'astro';
+
+import styles from './Games.module.css';
+
+import type { GameFrontmatter } from '../../types/game';
+
+const gameFiles = import.meta.glob('../../content/games/*.md', {
+  eager: true,
+}) as Record<string, MarkdownInstance<GameFrontmatter>>;
+
+const games = Object.values(gameFiles).map((game) => game.frontmatter);
+---
+
+<Layout title="Games">
+  <div class={styles.container}>
+    <h1>Games</h1>
+    <ul>
+      {
+        games.map((game) => (
+          <li>
+            <a href={`/games/${game.slug}`}>
+              <strong>Game {game.id}</strong>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <a href="/">Back Home</a>
+  </div>
+</Layout>

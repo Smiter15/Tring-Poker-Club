@@ -1,0 +1,74 @@
+---
+import Layout from '@layouts/Layout.astro';
+import type { MarkdownInstance } from 'astro';
+
+import SeasonLineChart from '../../components/SeasonProgressLineChart';
+
+import styles from './Seasons.module.css';
+
+import type { SeasonFrontmatter } from '../../types/season';
+
+export async function getStaticPaths() {
+  const seasonFiles = import.meta.glob('../../content/seasons/*.md', {
+    eager: true,
+  }) as Record<string, MarkdownInstance<SeasonFrontmatter>>;
+  return Object.entries(seasonFiles).map(([_, { frontmatter }]) => ({
+    params: { slug: frontmatter.slug },
+  }));
+}
+
+const { slug } = Astro.params as { slug: number };
+const seasonFiles = import.meta.glob('../../content/seasons/*.md', {
+  eager: true,
+}) as Record<string, MarkdownInstance<SeasonFrontmatter>>;
+
+const seasonsBySlug = Object.values(seasonFiles).reduce(
+  (acc, file) => {
+    acc[file.frontmatter.slug] = file;
+    return acc;
+  },
+  {} as Record<string, MarkdownInstance<SeasonFrontmatter>>,
+);
+
+const seasonData = seasonsBySlug[slug];
+if (!seasonData) throw new Error('Season not found');
+
+const { frontmatter } = seasonData;
+
+// 1. Import the pruned CSV as raw text
+const csvRaw = await import(`../../data/season-${slug}.csv?raw`);
+const lines = csvRaw.default.trim().split('\n');
+
+// 2. Extract headers and date labels
+const headers = lines.shift()!.split(','); // ["Player", "30/04/2025", ...]
+const dateLabels = headers.slice(1); // ["30/04/2025", "24/04/2025", ...]
+
+// 3. Parse rows and compute cumulative points
+interface Parsed {
+  label: string;
+  data: number[];
+}
+
+const datasets: Parsed[] = lines.map((line: string) => {
+  const cols = line.split(',');
+  const player = cols[0]; // e.g. "Phil Mc"
+  const points = cols.slice(1).map((val: string) => parseInt(val) || 0);
+  const cumul: number[] = [];
+  points.reduce((sum: number, p: number, i: number) => {
+    const next = sum + p;
+    cumul[i] = next;
+    return next;
+  }, 0);
+  return { label: player, data: cumul };
+});
+---
+
+<Layout title={`Season ${frontmatter.name}`}>
+  <div class={styles.container}>
+    <h1>Season {frontmatter.name}</h1>
+
+    <SeasonLineChart client:visible labels={dateLabels} datasets={datasets} />
+
+    <a href="/seasons">Back to Seasons</a>
+  </div>
+</Layout>
