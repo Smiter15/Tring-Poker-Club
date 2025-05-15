@@ -15,16 +15,22 @@ import styles from './Layout.module.css';
   </head>
   <body class={styles.body}>
     <header class={styles.header}>
-      <div class={styles.logo}>Tring Poker Club</div>
-      <nav class={styles.nav}>
-        <!-- <a class={styles.navLink} href="/">Home</a>
-        <a class={styles.navLink} href="/players">Players</a> -->
-      </nav>
+      <div class={styles.headerContent}>
+        <div class={styles.logo}>
+          <a href="/" class={styles.logoLink}>Tring Poker Club</a>
+        </div>
+        <nav class={styles.nav}>
+          <a class={styles.navLink} href="/seasons">Seasons</a>
+          <a class={styles.navLink} href="/games">Games</a>
+          <a class={styles.navLink} href="/players">Players</a>
+        </nav>
+      </div>
     </header>
     <main class={styles.main}>
       <slot />
     </main>
     <footer class={styles.footer}>
+      <p>Site built by Matt 2</p>
       <p>
         &copy; {new Date().getFullYear()} Tring Poker Club. All rights reserved.
       </p>

@@ -1,0 +1,43 @@
+---
+import Layout from '@layouts/Layout.astro';
+import type { MarkdownInstance } from 'astro';
+
+import styles from './games.module.css';
+
+import type { GameFrontmatter } from '../../types/game';
+
+export async function getStaticPaths() {
+  const gameFiles = import.meta.glob('../../content/game/*.md', {
+    eager: true,
+  }) as Record<string, MarkdownInstance<GameFrontmatter>>;
+  return Object.entries(gameFiles).map(([_, { frontmatter }]) => ({
+    params: { slug: frontmatter.slug },
+  }));
+}
+
+const { slug } = Astro.params as { slug: string };
+const gameFiles = import.meta.glob('../../content/game/*.md', {
+  eager: true,
+}) as Record<string, MarkdownInstance<GameFrontmatter>>;
+
+const gamesBySlug = Object.values(gameFiles).reduce(
+  (acc, file) => {
+    acc[file.frontmatter.slug] = file;
+    return acc;
+  },
+  {} as Record<string, MarkdownInstance<GameFrontmatter>>,
+);
+
+const gameData = gamesBySlug[slug];
+if (!gameData) throw new Error('Game not found');
+
+const { frontmatter } = gameData;
+---
+
+<Layout title={`Game ${frontmatter.id}`}>
+  <div class={styles.container}>
+    <section>
+      <p>Put shit here</p>
+    </section>
+  </div>
+</Layout>

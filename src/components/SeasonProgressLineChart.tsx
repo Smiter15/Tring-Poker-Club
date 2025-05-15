@@ -1,94 +1,118 @@
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-);
-
-const BASE_PALETTE = [
-  '#FF0000', // red
-  '#FF7F00', // orange
-  '#FFFF00', // yellow
-  '#00FF00', // lime
-  '#0000FF', // blue
-  '#4B0082', // indigo
-  '#8F00FF', // violet
-  '#FF00FF', // magenta
-  '#00FFFF', // cyan
-  '#FF1493', // deep pink
-  '#00FF7F', // spring green
-  '#FFD700', // gold
-  '#FF4500', // orange red
-  '#00BFFF', // deep sky blue
-  '#ADFF2F', // green yellow
-  '#DC143C', // crimson
-  '#8B0000', // dark red
-  '#008080', // teal
-  '#800080', // purple
-  '#808000', // olive
-  '#FFA500', // orange
-  '#FF69B4', // hot pink
-  '#1E90FF', // dodger blue
-  '#32CD32', // lime green
-  '#BA55D3', // medium orchid
-];
+import { useEffect, useState } from 'react';
+import * as Highcharts from 'highcharts';
+import { HighchartsReact } from 'highcharts-react-official';
 
 export interface SeasonLineChartProps {
   labels: string[];
-  datasets: {
-    label: string;
-    data: number[];
-  }[];
+  datasets: { label: string; data: number[] }[];
 }
 
 export default function SeasonLineChart({
   labels,
   datasets,
 }: SeasonLineChartProps) {
-  const coloredDatasets = datasets.map((ds, i) => {
-    const base = BASE_PALETTE[i % BASE_PALETTE.length];
-    const withAlpha = `${base}99`; // 99 hex ≈ 153/255 ≈ 0.6 opacity
+  const [themeReady, setThemeReady] = useState(false);
 
-    return {
-      ...ds,
-      tension: 0.3,
-      borderColor: withAlpha,
-      backgroundColor: withAlpha,
-    };
-  });
+  useEffect(() => {
+    import('highcharts/themes/brand-light')
+      .then(() => setThemeReady(true))
+      .catch((err) => console.error('Error loading Highcharts theme:', err));
+  }, []);
 
-  const data = { labels, datasets: coloredDatasets };
+  if (!themeReady) return null;
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'bottom' as const },
-      title: { display: true, text: 'Cumulative Points' },
+  const series: Highcharts.SeriesSplineOptions[] = datasets.map((ds) => ({
+    type: 'spline',
+    name: ds.label,
+    data: ds.data,
+    marker: { enabled: false },
+    lineWidth: 2,
+    pointPlacement: 'on',
+  }));
+
+  const options: Highcharts.Options = {
+    chart: {
+      type: 'spline',
+      marginRight: 40,
+      backgroundColor: 'transparent',
     },
-    scales: {
-      y: { beginAtZero: true, ticks: { precision: 0 } },
+
+    title: { text: 'Cumulative Points' },
+
+    xAxis: {
+      categories: labels,
+      tickmarkPlacement: 'on',
+      labels: {
+        useHTML: true,
+        formatter: function () {
+          return `<div>Game ${this.pos! + 1}</div>`;
+        },
+      },
     },
+
+    yAxis: {
+      title: { text: null },
+      min: 0,
+    },
+
+    legend: {
+      align: 'center',
+      verticalAlign: 'bottom',
+      layout: 'horizontal',
+    },
+
+    tooltip: {
+      shared: true,
+      useHTML: true,
+      formatter: function (this: any) {
+        const pts = (this.points ?? [])
+          .slice()
+          .sort((a: any, b: any) => b.y! - a.y!);
+
+        let s = `<div style="margin-bottom:4px"><b>${this.category}</b><br />Game ${this.x}</div><table>`;
+
+        pts.forEach((p: any) => {
+          s +=
+            `<tr>` +
+            `<td style="color:${p.series.color};padding-right:4px">\u25CF</td>` +
+            `<td>${p.series.name}:</td>` +
+            `<td style="padding-left:4px"><b>${p.y}</b></td>` +
+            `</tr>`;
+        });
+
+        s += `</table>`;
+        return s;
+      },
+    },
+
+    plotOptions: {
+      spline: {
+        marker: { enabled: false },
+        lineWidth: 2,
+      },
+    },
+
+    series,
+
+    responsive: {
+      rules: [
+        {
+          condition: { maxWidth: 500 },
+          chartOptions: { legend: { enabled: false } },
+        },
+      ],
+    },
+
+    credits: { enabled: false },
   };
 
   return (
-    <div style={{ height: '400px' }}>
-      <Line data={data} options={options} />
+    <div style={{ height: '600px' }}>
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        containerProps={{ style: { height: '100%' } }}
+      />
     </div>
   );
 }

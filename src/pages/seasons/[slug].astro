@@ -4,12 +4,12 @@ import type { MarkdownInstance } from 'astro';
 
 import SeasonLineChart from '../../components/SeasonProgressLineChart';
 
-import styles from './Seasons.module.css';
+import styles from './seasons.module.css';
 
 import type { SeasonFrontmatter } from '../../types/season';
 
 export async function getStaticPaths() {
-  const seasonFiles = import.meta.glob('../../content/seasons/*.md', {
+  const seasonFiles = import.meta.glob('../../content/season/*.md', {
     eager: true,
   }) as Record<string, MarkdownInstance<SeasonFrontmatter>>;
   return Object.entries(seasonFiles).map(([_, { frontmatter }]) => ({
@@ -17,8 +17,8 @@ export async function getStaticPaths() {
   }));
 }
 
-const { slug } = Astro.params as { slug: number };
-const seasonFiles = import.meta.glob('../../content/seasons/*.md', {
+const { slug } = Astro.params as { slug: string };
+const seasonFiles = import.meta.glob('../../content/season/*.md', {
   eager: true,
 }) as Record<string, MarkdownInstance<SeasonFrontmatter>>;
 
@@ -34,16 +34,11 @@ const seasonData = seasonsBySlug[slug];
 if (!seasonData) throw new Error('Season not found');
 
 const { frontmatter } = seasonData;
-
-// 1. Import the pruned CSV as raw text
-const csvRaw = await import(`../../data/season-${slug}.csv?raw`);
+const csvRaw = await import(`../../data/season/season-${slug}.csv?raw`);
 const lines = csvRaw.default.trim().split('\n');
+const headers = lines.shift()!.split(',');
+const dateLabels = headers.slice(1);
 
-// 2. Extract headers and date labels
-const headers = lines.shift()!.split(','); // ["Player", "30/04/2025", ...]
-const dateLabels = headers.slice(1); // ["30/04/2025", "24/04/2025", ...]
-
-// 3. Parse rows and compute cumulative points
 interface Parsed {
   label: string;
   data: number[];
@@ -51,24 +46,25 @@ interface Parsed {
 
 const datasets: Parsed[] = lines.map((line: string) => {
   const cols = line.split(',');
-  const player = cols[0]; // e.g. "Phil Mc"
+  const player = cols[0];
   const points = cols.slice(1).map((val: string) => parseInt(val) || 0);
   const cumul: number[] = [];
+
   points.reduce((sum: number, p: number, i: number) => {
     const next = sum + p;
     cumul[i] = next;
     return next;
   }, 0);
+
   return { label: player, data: cumul };
 });
 ---
 
 <Layout title={`Season ${frontmatter.name}`}>
   <div class={styles.container}>
-    <h1>Season {frontmatter.name}</h1>
+    <h2>Players</h2>
+    <!-- players -->
 
-    <SeasonLineChart client:visible labels={dateLabels} datasets={datasets} />
-
-    <a href="/seasons">Back to Seasons</a>
+    <SeasonLineChart client:load labels={dateLabels} datasets={datasets} />
   </div>
 </Layout>

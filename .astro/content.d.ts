@@ -147,10 +147,26 @@ declare module 'astro:content' {
 	};
 
 	type DataEntryMap = {
-		"players": Record<string, {
+		"game": Record<string, {
   id: string;
   body?: string;
-  collection: "players";
+  collection: "game";
+  data: any;
+  rendered?: RenderedContent;
+  filePath?: string;
+}>;
+"player": Record<string, {
+  id: string;
+  body?: string;
+  collection: "player";
+  data: any;
+  rendered?: RenderedContent;
+  filePath?: string;
+}>;
+"season": Record<string, {
+  id: string;
+  body?: string;
+  collection: "season";
   data: any;
   rendered?: RenderedContent;
   filePath?: string;

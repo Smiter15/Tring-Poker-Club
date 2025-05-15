@@ -1,32 +1,54 @@
 ---
 import Layout from '@layouts/Layout.astro';
+import Table from '@components/Table';
+
+import styles from './seasons.module.css';
+
 import type { MarkdownInstance } from 'astro';
-
-import styles from './Seasons.module.css';
-
 import type { SeasonFrontmatter } from '../../types/season';
 
-const seasonFiles = import.meta.glob('../../content/seasons/*.md', {
+const seasonFiles = import.meta.glob('../../content/season/*.md', {
   eager: true,
 }) as Record<string, MarkdownInstance<SeasonFrontmatter>>;
 
-const seasons = Object.values(seasonFiles).map((season) => season.frontmatter);
+const seasons = Object.values(seasonFiles).map((m) => m.frontmatter);
+
+const activeSeason = seasons[seasons.length - 1];
+const previousSeasons = seasons.slice(0, -1);
+
+const activeSeasonTableData = [
+  {
+    season: activeSeason.name,
+    numberOfPlayers: activeSeason.numberOfPlayers,
+    numberOfGames: activeSeason.numberOfGames,
+    leader: activeSeason.winnerFirstName,
+    playerSlug: activeSeason.winnerSlug,
+    playerImage: activeSeason.winnerImage,
+    navigate: `/seasons/${activeSeason.slug}`,
+  },
+];
+
+const previousSeasonsTableData = previousSeasons.map((s) => ({
+  season: s.name,
+  numberOfPlayers: s.numberOfPlayers,
+  numberOfGames: s.numberOfGames,
+  winner: s.winnerFirstName,
+  playerSlug: s.winnerSlug,
+  playerImage: s.winnerImage,
+  navigate: `/seasons/${s.slug}`,
+}));
 ---
 
 <Layout title="Seasons">
   <div class={styles.container}>
-    <h1>Seasons</h1>
-    <ul>
-      {
-        seasons.map((season) => (
-          <li>
-            <a href={`/seasons/${season.slug}`}>
-              <strong>Season {season.name}</strong>
-            </a>
-          </li>
-        ))
-      }
-    </ul>
-    <a href="/">Back Home</a>
+    <section>
+      <h2>Active season</h2>
+      <Table client:load data={activeSeasonTableData} />
+    </section>
+
+    <section>
+      <h2>Previous seasons</h2>
+      <Table client:load data={previousSeasonsTableData} />
+    </section>
   </div>
 </Layout>

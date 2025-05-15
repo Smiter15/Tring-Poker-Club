@@ -3,8 +3,11 @@ id: 2
 slug: ben-sinclair
 firstName: Ben
 lastName: Sinclair
-image: /images/players/ben.jpg
+image: ''
 knownAs: The Pro
+gamesPlayed: 40
+wins: 6
+bubbles: 0
 ---
 
-Ben id good at poker and running
+Ben is good at poker and running

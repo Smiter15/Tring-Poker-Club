@@ -1,37 +1,34 @@
 ---
 import Layout from '@layouts/Layout.astro';
+import Table from '@components/Table';
+
+import styles from './players.module.css';
+
 import type { MarkdownInstance } from 'astro';
 import type { PlayerFrontmatter } from '../../types/player';
 
-const playerFiles = import.meta.glob('../../content/players/*.md', {
+const playerFiles = import.meta.glob('../../content/player/*.md', {
   eager: true,
 }) as Record<string, MarkdownInstance<PlayerFrontmatter>>;
 
-const players = Object.values(playerFiles).map((player) => player.frontmatter);
+const players = Object.values(playerFiles).map(
+  ({ frontmatter }) => frontmatter,
+);
+
+const tableData = players.map((player) => ({
+  name: `${player.firstName}${player.knownAs ? ` "${player.knownAs}"` : ''} ${player.lastName}`,
+  playerImage: player.image,
+  playerSlug: player.slug,
+  gamesPlayed: player.gamesPlayed,
+  wins: player.wins,
+  bubbles: player.bubbles,
+  navigate: `/players/${player.slug}`,
+}));
 ---
 
 <Layout title="Players">
-  <h1>Players</h1>
-  <ul>
-    {
-      players.map((player) => (
-        <li>
-          <a href={`/players/${player.slug}`}>
-            <img
-              src={player.image}
-              alt={`${player.firstName} ${player.lastName}`}
-              width="100"
-            />
-            <div>
-              <strong>{player.knownAs}</strong>
-              <p>
-                {player.firstName} {player.lastName}
-              </p>
-            </div>
-          </a>
-        </li>
-      ))
-    }
-  </ul>
-  <a href="/">Back Home</a>
+  <div class={styles.container}>
+    <h1>Players</h1>
+    <Table client:load data={tableData} />
+  </div>
 </Layout>

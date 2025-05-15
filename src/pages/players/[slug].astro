@@ -1,10 +1,13 @@
 ---
 import Layout from '@layouts/Layout.astro';
 import type { MarkdownInstance } from 'astro';
+
+import styles from './players.module.css';
+
 import type { PlayerFrontmatter } from '../../types/player';
 
 export async function getStaticPaths() {
-  const playerFiles = import.meta.glob('../../content/players/*.md', {
+  const playerFiles = import.meta.glob('../../content/player/*.md', {
     eager: true,
   }) as Record<string, MarkdownInstance<PlayerFrontmatter>>;
   return Object.entries(playerFiles).map(([_, { frontmatter }]) => ({
@@ -13,7 +16,7 @@ export async function getStaticPaths() {
 }
 
 const { slug } = Astro.params as { slug: string };
-const playerFiles = import.meta.glob('../../content/players/*.md', {
+const playerFiles = import.meta.glob('../../content/player/*.md', {
   eager: true,
 }) as Record<string, MarkdownInstance<PlayerFrontmatter>>;
 
@@ -35,16 +38,17 @@ const { frontmatter, Content } = playerData;
 ---
 
 <Layout title={`${frontmatter.firstName} ${frontmatter.lastName}`}>
-  <h1>
-    {frontmatter.firstName} "{frontmatter.knownAs}" {frontmatter.lastName}
-  </h1>
-  <img
-    src={frontmatter.image}
-    alt={`${frontmatter.firstName} ${frontmatter.lastName}`}
-    width="200"
-  />
-  <article>
-    <Content />
-  </article>
-  <a href="/players">Back to Players</a>
+  <div class={styles.container}>
+    <h1>
+      {frontmatter.firstName} "{frontmatter.knownAs}" {frontmatter.lastName}
+    </h1>
+    <img
+      src={frontmatter.image}
+      alt={`${frontmatter.firstName} ${frontmatter.lastName}`}
+      width="200"
+    />
+    <article>
+      <Content />
+    </article>
+  </div>
 </Layout>
