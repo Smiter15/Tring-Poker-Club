@@ -7,7 +7,7 @@ import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 import SeasonLineChart from 'src/components/SeasonProgressLineChart';
 
-import styles from './seasons.module.css';
+import styles from './_seasons.module.css';
 
 export async function getStaticPaths() {
   const { data: seasons, error } = await supabase

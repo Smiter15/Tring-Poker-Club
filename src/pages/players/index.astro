@@ -4,7 +4,7 @@ import { supabase } from 'src/db/supabase';
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 
-import styles from './players.module.css';
+import styles from './_players.module.css';
 
 const { data: rawPlayers, error } = await supabase
   .from('players')

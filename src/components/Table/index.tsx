@@ -125,21 +125,23 @@ export default function Table({ data }: TableProps) {
                     }
                   >
                     {headers.map((header) => {
-                      if (header === 'place') {
+                      if (header === 'place' || header === 'position') {
                         return (
                           <td key={header} className={styles.placeCell}>
                             <span
                               style={
-                                row.place === '1st'
+                                row.place === '1st' || row.position === '1st'
                                   ? { color: '#dfbc00', fontWeight: 'bold' }
-                                  : row.place === '2nd'
+                                  : row.place === '2nd' ||
+                                      row.position === '2nd'
                                     ? { color: '#aeacac', fontWeight: 'bold' }
-                                    : row.place === '3rd'
+                                    : row.place === '3rd' ||
+                                        row.position === '3rd'
                                       ? { color: '#CD7F32', fontWeight: 'bold' }
                                       : { color: '#757575' }
                               }
                             >
-                              {row.place}
+                              {row.place || row.position}
                             </span>
                           </td>
                         );

@@ -5,7 +5,7 @@ import { getOrdinal } from 'src/utils';
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 
-import styles from './games.module.css';
+import styles from './_games.module.css';
 
 export async function getStaticPaths() {
   const { data: games, error } = await supabase.from('games').select('slug');
