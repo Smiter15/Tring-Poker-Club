@@ -5,9 +5,8 @@ import { getOrdinal } from 'src/utils';
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 
-import styles from './Players.module.css';
+import styles from './players.module.css';
 
-// 1) Dynamic routes
 export async function getStaticPaths() {
   const { data: players, error } = await supabase
     .from('players')
@@ -22,7 +21,6 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params as { slug: string };
 
-// 2) Fetch profile (now including wins & bubbles)
 const { data: rawPlayer, error: playerError } = await supabase
   .from('players')
   .select(
@@ -45,7 +43,6 @@ if (playerError || !rawPlayer) {
   throw new Error('Player not found');
 }
 
-// 3) Fetch all game results
 const { data: rawResults, error: resultsError } = await supabase
   .from('game_results')
   .select(
@@ -67,7 +64,6 @@ if (resultsError || !rawResults) {
   throw new Error('Game results not found');
 }
 
-// 4) Helpers
 const formatDate = (iso: string) => {
   const d = new Date(iso);
   const dd = String(d.getDate()).padStart(2, '0');
@@ -76,7 +72,6 @@ const formatDate = (iso: string) => {
   return `${dd}/${mm}/${yy}`;
 };
 
-// 5) Normalize profile
 const player = {
   firstName: rawPlayer.first_name,
   lastName: rawPlayer.last_name,
@@ -87,14 +82,12 @@ const player = {
   bubbles: rawPlayer.bubbles,
 };
 
-// 6) Group by season
 const seasonsMap: Record<number, typeof rawResults> = {};
 rawResults.forEach((r: any) => {
   const sid = r.game.season_id;
   (seasonsMap[sid] ||= []).push(r);
 });
 
-// 7) Sort season IDs
 const seasonNumbers = Object.keys(seasonsMap)
   .map(Number)
   .sort((a, b) => a - b);
@@ -102,7 +95,6 @@ const seasonNumbers = Object.keys(seasonsMap)
 
 <Layout title={`${player.firstName} ${player.lastName}`}>
   <div class={styles.container}>
-    {/* ——— PLAYER PROFILE ——— */}
     <section class={styles.profile}>
       {
         player.image && (
