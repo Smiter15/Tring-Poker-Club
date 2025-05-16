@@ -125,6 +125,26 @@ export default function Table({ data }: TableProps) {
                     }
                   >
                     {headers.map((header) => {
+                      if (header === 'place') {
+                        return (
+                          <td key={header} className={styles.placeCell}>
+                            <span
+                              style={
+                                row.place === '1st'
+                                  ? { color: '#dfbc00', fontWeight: 'bold' }
+                                  : row.place === '2nd'
+                                    ? { color: '#aeacac', fontWeight: 'bold' }
+                                    : row.place === '3rd'
+                                      ? { color: '#CD7F32', fontWeight: 'bold' }
+                                      : { color: '#757575' }
+                              }
+                            >
+                              {row.place}
+                            </span>
+                          </td>
+                        );
+                      }
+
                       if (['winner', 'leader', 'name'].includes(header)) {
                         const playerName = row.winner || row.leader || row.name;
                         const playerPath = `/players/${row.playerSlug}`;
@@ -143,7 +163,7 @@ export default function Table({ data }: TableProps) {
                                 <FontAwesomeIcon
                                   icon={faCrown}
                                   className={styles.crownIcon}
-                                  color="gold"
+                                  color="#FFD700"
                                 />
                               )}
                               {row.playerImage ? (

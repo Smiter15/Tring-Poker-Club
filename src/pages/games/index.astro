@@ -1,29 +1,67 @@
 ---
-import Layout from '@layouts/Layout.astro';
+import { supabase } from 'src/db/supabase';
 
+import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 
 import styles from './games.module.css';
 
-import type { MarkdownInstance } from 'astro';
-import type { GameFrontmatter } from '../../types/game';
+const { data: rawGames, error } = await supabase
+  .from('games')
+  .select(
+    `
+    slug,
+    season_id,
+    season_game,
+    played_on,
+    no_of_players,
+    winner:players!games_winner_id_fkey (
+      first_name,
+      nickname,
+      prefer_nickname,
+      slug,
+      image_url
+    )
+  `,
+  )
+  .order('season_id', { ascending: true })
+  .order('season_game', { ascending: true });
 
-const gameFiles = import.meta.glob('../../content/game/*.md', {
-  eager: true,
-}) as Record<string, MarkdownInstance<GameFrontmatter>>;
+if (error) {
+  console.error('❌ Failed to load games:', error);
+  throw new Error('Could not load games');
+}
 
-const games = Object.values(gameFiles).map((g) => g.frontmatter);
+const games = rawGames.map((g: any) => ({
+  slug: g.slug,
+  seasonId: g.season_id,
+  seasonGame: g.season_game,
+  date: g.played_on,
+  numberOfPlayers: g.no_of_players,
+  winnerFirstName: g.winner?.prefer_nickname
+    ? g.winner?.nickname
+    : g.winner?.first_name,
+  winnerSlug: g.winner?.slug ?? '',
+  winnerImage: g.winner?.image_url ?? null,
+}));
 
-const seasonsMap: Record<number, GameFrontmatter[]> = {};
-games.forEach((g) => {
-  (seasonsMap[g.season] ||= []).push(g);
+const seasonsMap: Record<number, typeof games> = {};
+games.forEach((game) => {
+  (seasonsMap[game.seasonId] ||= []).push(game);
 });
+
 const seasonNumbers = Object.keys(seasonsMap)
   .map(Number)
   .sort((a, b) => a - b);
-seasonNumbers.forEach((s) =>
-  seasonsMap[s].sort((a, b) => a.seasonGame - b.seasonGame),
-);
+
+const formatDate = (isoString: string) => {
+  const d = new Date(isoString);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+
+  return `${dd}/${mm}/${yy}`;
+};
 ---
 
 <Layout title="Games">
@@ -43,8 +81,8 @@ seasonNumbers.forEach((s) =>
         seasonNumbers.map((season) => {
           const tableData = seasonsMap[season].map((game) => ({
             game: game.seasonGame,
-            date: game.date,
-            numberOfPlayers: game.noOfPlayers,
+            date: formatDate(game.date),
+            numberOfPlayers: game.numberOfPlayers,
             winner: game.winnerFirstName,
             playerSlug: game.winnerSlug,
             playerImage: game.winnerImage,

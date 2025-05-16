@@ -1,17 +1,48 @@
 ---
+import { supabase } from 'src/db/supabase';
+
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 
 import styles from './seasons.module.css';
 
-import type { MarkdownInstance } from 'astro';
-import type { SeasonFrontmatter } from '../../types/season';
+const { data: rawSeasons, error } = await supabase
+  .from('seasons')
+  .select(
+    `
+    slug,
+    name,
+    number_of_players,
+    number_of_games,
+    winner:players!seasons_winner_id_fkey (
+      first_name,
+      nickname,
+      prefer_nickname,
+      slug,
+      image_url
+    )
+  `,
+  )
+  .order('id', { ascending: true });
 
-const seasonFiles = import.meta.glob('../../content/season/*.md', {
-  eager: true,
-}) as Record<string, MarkdownInstance<SeasonFrontmatter>>;
+if (error) {
+  console.error('❌ Failed to load seasons:', error);
+  throw new Error('Could not load seasons');
+}
 
-const seasons = Object.values(seasonFiles).map((m) => m.frontmatter);
+const seasons = rawSeasons.map((s: any) => ({
+  slug: s.slug,
+  name: s.name,
+  numberOfPlayers: s.number_of_players,
+  numberOfGames: s.number_of_games,
+  winner: {
+    firstName: s.winner.first_name,
+    nickname: s.winner.nickname,
+    preferNickname: s.winner.prefer_nickname,
+    slug: s.winner.slug,
+    imageUrl: s.winner.image_url,
+  },
+}));
 
 const currentSeason = seasons[seasons.length - 1];
 const previousSeasons = seasons.slice(0, -1);
@@ -21,9 +52,11 @@ const currentSeasonTableData = [
     season: currentSeason.name,
     numberOfPlayers: currentSeason.numberOfPlayers,
     numberOfGames: currentSeason.numberOfGames,
-    leader: currentSeason.winnerFirstName,
-    playerSlug: currentSeason.winnerSlug,
-    playerImage: currentSeason.winnerImage,
+    leader: currentSeason.winner.preferNickname
+      ? currentSeason.winner.nickname
+      : currentSeason.winner.firstName,
+    playerSlug: currentSeason.winner.slug,
+    playerImage: currentSeason.winner.imageUrl,
     navigate: `/seasons/${currentSeason.slug}`,
   },
 ];
@@ -32,9 +65,9 @@ const previousSeasonsTableData = previousSeasons.map((s) => ({
   season: s.name,
   numberOfPlayers: s.numberOfPlayers,
   numberOfGames: s.numberOfGames,
-  winner: s.winnerFirstName,
-  playerSlug: s.winnerSlug,
-  playerImage: s.winnerImage,
+  winner: s.winner.preferNickname ? s.winner.nickname : s.winner.firstName,
+  playerSlug: s.winner.slug,
+  playerImage: s.winner.imageUrl,
   navigate: `/seasons/${s.slug}`,
 }));
 ---

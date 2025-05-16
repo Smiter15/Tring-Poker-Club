@@ -1,54 +1,160 @@
 ---
+import { supabase } from 'src/db/supabase';
+import { getOrdinal } from 'src/utils';
+
 import Layout from '@layouts/Layout.astro';
+import Table from '@components/Table';
 
 import styles from './players.module.css';
 
-import type { MarkdownInstance } from 'astro';
-import type { PlayerFrontmatter } from '../../types/player';
-
+// 1) Dynamic routes
 export async function getStaticPaths() {
-  const playerFiles = import.meta.glob('../../content/player/*.md', {
-    eager: true,
-  }) as Record<string, MarkdownInstance<PlayerFrontmatter>>;
-  return Object.entries(playerFiles).map(([_, { frontmatter }]) => ({
-    params: { slug: frontmatter.slug },
-  }));
+  const { data: players, error } = await supabase
+    .from('players')
+    .select('slug');
+
+  if (error || !players) {
+    console.error('❌ Failed to load player slugs:', error);
+    return [];
+  }
+  return players.map((p) => ({ params: { slug: p.slug } }));
 }
 
 const { slug } = Astro.params as { slug: string };
-const playerFiles = import.meta.glob('../../content/player/*.md', {
-  eager: true,
-}) as Record<string, MarkdownInstance<PlayerFrontmatter>>;
 
-const playersBySlug = Object.values(playerFiles).reduce(
-  (acc, file) => {
-    acc[file.frontmatter.slug] = file;
-    return acc;
-  },
-  {} as Record<string, MarkdownInstance<PlayerFrontmatter>>,
-);
+// 2) Fetch profile (now including wins & bubbles)
+const { data: rawPlayer, error: playerError } = await supabase
+  .from('players')
+  .select(
+    `
+    id,
+    first_name,
+    last_name,
+    image_url,
+    nickname,
+    bio,
+    wins,
+    bubbles
+  `,
+  )
+  .eq('slug', slug)
+  .single();
 
-const playerData = playersBySlug[slug];
-
-if (!playerData) {
+if (playerError || !rawPlayer) {
+  console.error('❌ Could not load player:', playerError);
   throw new Error('Player not found');
 }
 
-const { frontmatter, Content } = playerData;
+// 3) Fetch all game results
+const { data: rawResults, error: resultsError } = await supabase
+  .from('game_results')
+  .select(
+    `
+    place,
+    points,
+    game:games!game_results_game_id_fkey(
+      slug,
+      season_id,
+      season_game,
+      played_on
+    )
+  `,
+  )
+  .eq('player_id', rawPlayer.id);
+
+if (resultsError || !rawResults) {
+  console.error('❌ Could not load game results:', resultsError);
+  throw new Error('Game results not found');
+}
+
+// 4) Helpers
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${yy}`;
+};
+
+// 5) Normalize profile
+const player = {
+  firstName: rawPlayer.first_name,
+  lastName: rawPlayer.last_name,
+  image: rawPlayer.image_url,
+  nickname: rawPlayer.nickname,
+  bio: rawPlayer.bio || '',
+  wins: rawPlayer.wins,
+  bubbles: rawPlayer.bubbles,
+};
+
+// 6) Group by season
+const seasonsMap: Record<number, typeof rawResults> = {};
+rawResults.forEach((r: any) => {
+  const sid = r.game.season_id;
+  (seasonsMap[sid] ||= []).push(r);
+});
+
+// 7) Sort season IDs
+const seasonNumbers = Object.keys(seasonsMap)
+  .map(Number)
+  .sort((a, b) => a - b);
 ---
 
-<Layout title={`${frontmatter.firstName} ${frontmatter.lastName}`}>
+<Layout title={`${player.firstName} ${player.lastName}`}>
   <div class={styles.container}>
-    <h1>
-      {frontmatter.firstName} "{frontmatter.knownAs}" {frontmatter.lastName}
-    </h1>
-    <img
-      src={frontmatter.image}
-      alt={`${frontmatter.firstName} ${frontmatter.lastName}`}
-      width="200"
-    />
-    <article>
-      <Content />
-    </article>
+    {/* ——— PLAYER PROFILE ——— */}
+    <section class={styles.profile}>
+      {
+        player.image && (
+          <img
+            src={player.image}
+            alt={`${player.firstName} ${player.lastName}`}
+            class={styles.avatar}
+          />
+        )
+      }
+      <div class={styles.profileInfo}>
+        <h1 class={styles.name}>
+          {player.firstName}
+          {player.nickname ? ` “${player.nickname}”` : ''}
+          {' '}{player.lastName}
+        </h1>
+        <div class={styles.stats}>
+          <div class={styles.statItem}>
+            <span class={styles.statNumber}>{player.wins}</span>
+            <span class={styles.statLabel}>Wins</span>
+          </div>
+          <div class={styles.statItem}>
+            <span class={styles.statNumber}>{player.bubbles}</span>
+            <span class={styles.statLabel}>Bubbles</span>
+          </div>
+        </div>
+        {player.bio && <article class={styles.bio}>{player.bio}</article>}
+      </div>
+    </section>
+
+    <h2>Games by Season</h2>
+    {
+      seasonNumbers.map((seasonId) => {
+        const games = seasonsMap[seasonId]
+          .slice()
+          .sort((a: any, b: any) => a.game.season_game - b.game.season_game);
+
+        const tableData = games.map((r: any) => ({
+          game: r.game.season_game,
+          date: formatDate(r.game.played_on),
+          position: getOrdinal(r.place),
+          points: r.points,
+          navigate: `/games/${r.game.slug}`,
+        }));
+
+        return (
+          <section>
+            <h3>Season {seasonId}</h3>
+            <Table client:load data={tableData} />
+          </section>
+        );
+      })
+    }
   </div>
 </Layout>

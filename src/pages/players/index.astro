@@ -1,22 +1,45 @@
 ---
+import { supabase } from 'src/db/supabase';
+
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 
 import styles from './players.module.css';
 
-import type { MarkdownInstance } from 'astro';
-import type { PlayerFrontmatter } from '../../types/player';
+const { data: rawPlayers, error } = await supabase
+  .from('players')
+  .select(
+    `
+    slug,
+    first_name,
+    last_name,
+    image_url,
+    nickname,
+    games_played,
+    wins,
+    bubbles
+  `,
+  )
+  .order('last_name', { ascending: true });
 
-const playerFiles = import.meta.glob('../../content/player/*.md', {
-  eager: true,
-}) as Record<string, MarkdownInstance<PlayerFrontmatter>>;
+if (error) {
+  console.error('❌ Failed to load players:', error);
+  throw new Error('Could not load players');
+}
 
-const players = Object.values(playerFiles).map(
-  ({ frontmatter }) => frontmatter,
-);
+const players = rawPlayers.map((p) => ({
+  slug: p.slug,
+  firstName: p.first_name,
+  lastName: p.last_name,
+  image: p.image_url,
+  nickname: p.nickname,
+  gamesPlayed: p.games_played,
+  wins: p.wins,
+  bubbles: p.bubbles,
+}));
 
 const tableData = players.map((player) => ({
-  name: `${player.firstName}${player.knownAs ? ` "${player.knownAs}"` : ''} ${player.lastName}`,
+  name: `${player.firstName}${player.nickname ? ` "${player.nickname}"` : ''} ${player.lastName}`,
   playerImage: player.image,
   playerSlug: player.slug,
   gamesPlayed: player.gamesPlayed,

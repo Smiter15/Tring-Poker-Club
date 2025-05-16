@@ -1,43 +1,119 @@
 ---
+import { supabase } from 'src/db/supabase';
+import { getOrdinal } from 'src/utils';
+
 import Layout from '@layouts/Layout.astro';
+import Table from '@components/Table';
 
 import styles from './games.module.css';
 
-import type { MarkdownInstance } from 'astro';
-import type { GameFrontmatter } from '../../types/game';
-
 export async function getStaticPaths() {
-  const gameFiles = import.meta.glob('../../content/game/*.md', {
-    eager: true,
-  }) as Record<string, MarkdownInstance<GameFrontmatter>>;
-  return Object.entries(gameFiles).map(([_, { frontmatter }]) => ({
-    params: { slug: frontmatter.slug },
-  }));
+  const { data: games, error } = await supabase.from('games').select('slug');
+
+  if (error || !games) {
+    console.error('❌ Failed to load game slugs:', error);
+    return [];
+  }
+  return games.map((g) => ({ params: { slug: g.slug } }));
 }
 
 const { slug } = Astro.params as { slug: string };
-const gameFiles = import.meta.glob('../../content/game/*.md', {
-  eager: true,
-}) as Record<string, MarkdownInstance<GameFrontmatter>>;
 
-const gamesBySlug = Object.values(gameFiles).reduce(
-  (acc, file) => {
-    acc[file.frontmatter.slug] = file;
-    return acc;
-  },
-  {} as Record<string, MarkdownInstance<GameFrontmatter>>,
-);
+const { data: rawGameData, error: gameError } = await supabase
+  .from('games')
+  .select(
+    `
+    id,
+    slug,
+    season_id,
+    season_game,
+    played_on,
+    no_of_players,
+    winner:players!games_winner_id_fkey(
+      first_name,
+      slug,
+      image_url
+    )
+  `,
+  )
+  .eq('slug', slug)
+  .single();
 
-const gameData = gamesBySlug[slug];
-if (!gameData) throw new Error('Game not found');
+if (gameError || !rawGameData) {
+  console.error('❌ Could not load game:', gameError);
+  throw new Error('Game not found');
+}
 
-const { frontmatter } = gameData;
+const { data: rawResultsData, error: resultsError } = await supabase
+  .from('game_results')
+  .select(
+    `
+    place,
+    points,
+    player:players!game_results_player_id_fkey(
+      first_name,
+      last_name,
+      slug,
+      image_url
+    )
+  `,
+  )
+  .eq('game_id', rawGameData.id)
+  .order('place', { ascending: true });
+
+if (resultsError || !rawResultsData) {
+  console.error('❌ Could not load game results:', resultsError);
+  throw new Error('Game results not found');
+}
+
+const rawGame = rawGameData as any;
+const rawResults = rawResultsData as any[];
+
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+
+  return `${dd}/${mm}/${yy}`;
+};
+
+const game = {
+  id: rawGame.id,
+  seasonId: rawGame.season_id,
+  seasonGame: rawGame.season_game,
+  date: formatDate(rawGame.played_on),
+  numberOfPlayers: rawGame.no_of_players,
+  winnerFirstName: rawGame.winner?.first_name,
+  winnerSlug: rawGame.winner?.slug ?? '',
+  winnerImage: rawGame.winner?.image_url ?? '',
+  slug: rawGame.slug,
+};
+
+const tableData = rawResults.map((r) => ({
+  place: getOrdinal(r.place),
+  name: `${r.player.first_name} ${r.player.last_name}`,
+  playerSlug: r.player.slug,
+  playerImage: r.player.image_url,
+  points: r.points,
+}));
 ---
 
-<Layout title={`Game ${frontmatter.id}`}>
+<Layout title={`Game ${game.seasonGame}`}>
   <div class={styles.container}>
-    <section>
-      <p>Put shit here</p>
-    </section>
+    <h1>
+      Season {game.seasonId} – Game {game.seasonGame} ({game.date})
+    </h1>
+
+    <h2>Winner</h2>
+    <div class={styles.winner}>
+      <img src={game.winnerImage} alt={game.winnerFirstName} width="100" />
+      <a href={`/players/${game.winnerSlug}`}>
+        {game.winnerFirstName}
+      </a>
+    </div>
+
+    <h2>Results</h2>
+    <Table client:load data={tableData} />
   </div>
 </Layout>

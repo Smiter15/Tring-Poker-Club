@@ -1,52 +1,135 @@
 ---
+import { supabase } from 'src/db/supabase';
+
+import { getOrdinal } from 'src/utils';
+
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
-
-import SeasonLineChart from '../../components/SeasonProgressLineChart';
+import SeasonLineChart from 'src/components/SeasonProgressLineChart';
 
 import styles from './seasons.module.css';
 
-import type { MarkdownInstance } from 'astro';
-import type { SeasonFrontmatter } from '../../types/season';
-
 export async function getStaticPaths() {
-  const seasonFiles = import.meta.glob('../../content/season/*.md', {
-    eager: true,
-  }) as Record<string, MarkdownInstance<SeasonFrontmatter>>;
-  return Object.entries(seasonFiles).map(([_, { frontmatter }]) => ({
-    params: { slug: frontmatter.slug },
+  const { data: seasons, error } = await supabase
+    .from('seasons')
+    .select('slug');
+
+  if (error) {
+    console.error('❌ Failed to load season slugs:', error);
+    return [];
+  }
+
+  return seasons.map((s) => ({
+    params: { slug: s.slug },
   }));
 }
 
 const { slug } = Astro.params as { slug: string };
-const seasonFiles = import.meta.glob('../../content/season/*.md', {
-  eager: true,
-}) as Record<string, MarkdownInstance<SeasonFrontmatter>>;
 
-const seasonsBySlug = Object.values(seasonFiles).reduce(
-  (acc, file) => {
-    acc[file.frontmatter.slug] = file;
-    return acc;
-  },
-  {} as Record<string, MarkdownInstance<SeasonFrontmatter>>,
-);
+const { data: season, error: seasonError } = await supabase
+  .from('seasons')
+  .select('id, name')
+  .eq('slug', slug)
+  .single();
 
-const seasonData = seasonsBySlug[slug];
-if (!seasonData) throw new Error('Season not found');
+if (seasonError || !season) {
+  console.error('❌ Could not load season:', seasonError);
+  throw new Error('Season not found');
+}
+const seasonId = season.id;
 
-const { frontmatter } = seasonData;
+const { data: rawGames, error: gamesError } = await supabase
+  .from('games')
+  .select(
+    `
+    id,
+    slug,
+    season_game,
+    played_on,
+    no_of_players,
+    winner:players!games_winner_id_fkey (
+      first_name,
+      nickname,
+      slug,
+      image_url
+    )
+  `,
+  )
+  .eq('season_id', seasonId)
+  .order('season_game', { ascending: true });
 
+if (gamesError || !rawGames) {
+  console.error('❌ Could not load games:', gamesError);
+  throw new Error('Games not found');
+}
+
+const { data: rawResults, error: resultsError } = await supabase
+  .from('season_results')
+  .select(
+    `
+    place,
+    points,
+    player:players!season_results_player_id_fkey (
+      first_name,
+      last_name,
+      slug,
+      image_url
+    )
+  `,
+  )
+  .eq('season_id', seasonId)
+  .order('place', { ascending: true });
+
+if (resultsError || !rawResults) {
+  console.error('❌ Could not load season results:', resultsError);
+  throw new Error('Season results not found');
+}
+
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+
+  return `${dd}/${mm}/${yy}`;
+};
+
+const games = rawGames.map((g: any) => ({
+  id: g.id,
+  slug: g.slug,
+  seasonGame: g.season_game,
+  date: formatDate(g.played_on),
+  numberOfPlayers: g.no_of_players,
+  winnerFirstName: g.nickname || g.winner?.first_name, // update to allow for nicknames
+  winnerSlug: g.winner?.slug ?? '',
+  winnerImage: g.winner?.image_url ?? '',
+}));
+
+const tableData = rawResults.map((r: any) => ({
+  place: getOrdinal(r.place),
+  name: `${r.player.first_name} ${r.player.last_name}`,
+  playerSlug: r.player.slug,
+  playerImage: r.player.image_url,
+  points: r.points,
+}));
+
+const gamesTableData = games.map((g) => ({
+  game: g.seasonGame,
+  date: g.date,
+  numberOfPlayers: g.numberOfPlayers,
+  winner: g.winnerFirstName,
+  playerSlug: g.winnerSlug,
+  playerImage: g.winnerImage,
+  navigate: `/games/${g.slug}`,
+}));
+
+// Cumulative points chart
 const csvRaw = await import(`../../data/season/season-${slug}.csv?raw`);
 const lines = csvRaw.default.trim().split('\n');
 const headers = lines.shift()!.split(',');
 const dateLabels = headers.slice(1);
 
-interface Parsed {
-  label: string;
-  data: number[];
-}
-
-const datasets: Parsed[] = lines.map((line: string) => {
+const datasets = lines.map((line: string) => {
   const cols = line.split(',');
   const player = cols[0];
   const points = cols.slice(1).map((val: string) => parseInt(val) || 0);
@@ -58,18 +141,19 @@ const datasets: Parsed[] = lines.map((line: string) => {
   }, 0);
   return { label: player, data: cumul };
 });
-
-const tableData = frontmatter.results;
 ---
 
-<Layout title={`Season ${frontmatter.name}`}>
+<Layout title={`Season ${season.name}`}>
   <div class={styles.container}>
-    <h1>Season {frontmatter.name}</h1>
+    <h1>Season {season.name}</h1>
 
     <h2>Results</h2>
     <Table client:load data={tableData} />
 
     <h2>Cumulative Points</h2>
     <SeasonLineChart client:load labels={dateLabels} datasets={datasets} />
+
+    <h2>Games</h2>
+    <Table client:load data={gamesTableData} />
   </div>
 </Layout>
