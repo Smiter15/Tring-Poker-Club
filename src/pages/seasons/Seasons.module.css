@@ -8,8 +8,16 @@
   margin-top: 2rem;
 }
 
+h2 {
+  margin-top: 3rem;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 1rem;
+  }
+
+  h2 {
+    margin-top: 2rem;
   }
 }

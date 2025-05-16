@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChevronRight,
   faChevronUp,
   faChevronDown,
   faUserCircle,
+  faCrown,
 } from '@fortawesome/free-solid-svg-icons';
 
 import styles from './table.module.css';
@@ -28,9 +30,10 @@ const formatHeader = (header: string) => {
     .join(' ');
 };
 
-const Table = ({ data }: TableProps) => {
+export default function Table({ data }: TableProps) {
   if (!data.length) return null;
 
+  const hasNavigate = data.some((row) => typeof row.navigate === 'string');
   const headers = Object.keys(data[0]).filter(
     (h) => h !== 'navigate' && h !== 'playerSlug' && h !== 'playerImage',
   );
@@ -72,88 +75,114 @@ const Table = ({ data }: TableProps) => {
 
   return (
     <div className={styles.tableContainer}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            {headers.map((field) => (
-              <th
-                key={field}
-                onClick={onHeaderClick(field)}
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-              >
-                <div>
-                  <span>{formatHeader(field)}</span>
-                  <FontAwesomeIcon
-                    icon={
-                      sortField === field
-                        ? sortDir === 'desc'
-                          ? faChevronDown
-                          : faChevronUp
-                        : faChevronDown
-                    }
-                    className={styles.sortIcon}
-                    style={{
-                      visibility: sortField === field ? 'visible' : 'hidden',
-                    }}
-                  />
-                </div>
-              </th>
-            ))}
-            <th aria-label="Actions" />
-          </tr>
-        </thead>
-
-        <tbody>
-          {sortedData.map((row, i) => (
-            <tr
-              key={row.navigate ?? i}
-              className={styles.clickableRow}
-              onClick={() => (window.location.href = row.navigate)}
-            >
-              {headers.map((header) => {
-                if (
-                  header === 'winner' ||
-                  header === 'leader' ||
-                  header === 'name'
-                ) {
-                  const playerName = row.winner || row.leader || row.name;
-                  const playerPath = `/players/${row.playerSlug}`;
-                  return (
-                    <td key={header} className={styles.playerCell}>
-                      <a href={playerPath} style={{ all: 'unset' }}>
-                        {row.playerImage ? (
-                          <img
-                            src={row.playerImage}
-                            alt={playerName}
-                            className={styles.playerImage}
-                          />
-                        ) : (
-                          <FontAwesomeIcon
-                            icon={faUserCircle}
-                            className={styles.avatarIcon}
-                          />
-                        )}
-                      </a>
-                      <a className={styles.link} href={playerPath}>
-                        {playerName}
-                      </a>
-                    </td>
-                  );
-                }
-                return <td key={header}>{row[header]}</td>;
-              })}
-              <td className={styles.chevronCell}>
-                <FontAwesomeIcon
-                  icon={faChevronRight}
-                  className={styles.chevron}
-                />
-              </td>
+      <LayoutGroup>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              {headers.map((field) => (
+                <th key={field} onClick={onHeaderClick(field)}>
+                  <div>
+                    <span>{formatHeader(field)}</span>
+                    <FontAwesomeIcon
+                      icon={
+                        sortField === field
+                          ? sortDir === 'desc'
+                            ? faChevronDown
+                            : faChevronUp
+                          : faChevronDown
+                      }
+                      className={styles.sortIcon}
+                      style={{
+                        visibility: sortField === field ? 'visible' : 'hidden',
+                      }}
+                    />
+                  </div>
+                </th>
+              ))}
+              {hasNavigate && <th aria-label="Actions" />}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <motion.tbody layout>
+            <AnimatePresence>
+              {sortedData.map((row, i) => {
+                const nav =
+                  hasNavigate && typeof row.navigate === 'string'
+                    ? row.navigate
+                    : null;
+
+                return (
+                  <motion.tr
+                    key={nav ?? i}
+                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={nav ? styles.clickableRow : undefined}
+                    onClick={
+                      nav ? () => (window.location.href = nav) : undefined
+                    }
+                  >
+                    {headers.map((header) => {
+                      if (['winner', 'leader', 'name'].includes(header)) {
+                        const playerName = row.winner || row.leader || row.name;
+                        const playerPath = `/players/${row.playerSlug}`;
+
+                        return (
+                          <td key={header} className={styles.playerCell}>
+                            <a
+                              href={playerPath}
+                              style={{
+                                all: 'unset',
+                                cursor: 'pointer',
+                                position: 'relative',
+                              }}
+                            >
+                              {row.place === '1st' && (
+                                <FontAwesomeIcon
+                                  icon={faCrown}
+                                  className={styles.crownIcon}
+                                  color="gold"
+                                />
+                              )}
+                              {row.playerImage ? (
+                                <img
+                                  src={row.playerImage}
+                                  alt={playerName}
+                                  className={styles.playerImage}
+                                />
+                              ) : (
+                                <FontAwesomeIcon
+                                  icon={faUserCircle}
+                                  className={styles.avatarIcon}
+                                />
+                              )}
+                            </a>
+                            <a className={styles.link} href={playerPath}>
+                              {playerName}
+                            </a>
+                          </td>
+                        );
+                      }
+                      return <td key={header}>{row[header]}</td>;
+                    })}
+
+                    {hasNavigate && (
+                      <td className={styles.chevronCell}>
+                        <FontAwesomeIcon
+                          icon={faChevronRight}
+                          className={styles.chevron}
+                        />
+                      </td>
+                    )}
+                  </motion.tr>
+                );
+              })}
+            </AnimatePresence>
+          </motion.tbody>
+        </table>
+      </LayoutGroup>
     </div>
   );
-};
-
-export default Table;
+}

@@ -7,4 +7,11 @@ export interface SeasonFrontmatter {
   winnerSlug: string;
   winnerFirstName: string;
   winnerImage?: string;
+  results: {
+    place: string;
+    name: string;
+    playerSlug: string;
+    playerImage?: string;
+    points: number;
+  }[];
 }

@@ -37,7 +37,7 @@ export default function SeasonLineChart({
       backgroundColor: 'transparent',
     },
 
-    title: { text: 'Cumulative Points' },
+    title: { text: undefined },
 
     xAxis: {
       categories: labels,
@@ -69,7 +69,7 @@ export default function SeasonLineChart({
           .slice()
           .sort((a: any, b: any) => b.y! - a.y!);
 
-        let s = `<div style="margin-bottom:4px"><b>${this.category}</b><br />Game ${this.x}</div><table>`;
+        let s = `<div style="margin-bottom:4px"><b>${this.category}</b><br />Game ${this.x + 1}</div><table>`;
 
         pts.forEach((p: any) => {
           s +=
@@ -111,7 +111,7 @@ export default function SeasonLineChart({
       <HighchartsReact
         highcharts={Highcharts}
         options={options}
-        containerProps={{ style: { height: '100%' } }}
+        containerProps={{ style: { height: '100%', width: '104%' } }}
       />
     </div>
   );

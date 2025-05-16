@@ -24,6 +24,8 @@
   padding: 16px 8px;
   font-size: 14px;
   font-weight: 400;
+  cursor: pointer;
+  user-select: none;
 }
 
 .table tr {
@@ -51,6 +53,15 @@
 .playerCell {
   display: flex;
   align-items: center;
+}
+
+.crownIcon {
+  position: absolute;
+  transform: rotate(-10deg);
+  text-shadow: 6px 2px 4px rgba(0, 0, 0, 0.5);
+  top: -17px;
+  left: 1px;
+  font-size: 22px;
 }
 
 .chevronCell {

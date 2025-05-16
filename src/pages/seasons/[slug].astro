@@ -1,11 +1,12 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import type { MarkdownInstance } from 'astro';
+import Table from '@components/Table';
 
 import SeasonLineChart from '../../components/SeasonProgressLineChart';
 
 import styles from './seasons.module.css';
 
+import type { MarkdownInstance } from 'astro';
 import type { SeasonFrontmatter } from '../../types/season';
 
 export async function getStaticPaths() {
@@ -34,6 +35,7 @@ const seasonData = seasonsBySlug[slug];
 if (!seasonData) throw new Error('Season not found');
 
 const { frontmatter } = seasonData;
+
 const csvRaw = await import(`../../data/season/season-${slug}.csv?raw`);
 const lines = csvRaw.default.trim().split('\n');
 const headers = lines.shift()!.split(',');
@@ -49,22 +51,25 @@ const datasets: Parsed[] = lines.map((line: string) => {
   const player = cols[0];
   const points = cols.slice(1).map((val: string) => parseInt(val) || 0);
   const cumul: number[] = [];
-
   points.reduce((sum: number, p: number, i: number) => {
     const next = sum + p;
     cumul[i] = next;
     return next;
   }, 0);
-
   return { label: player, data: cumul };
 });
+
+const tableData = frontmatter.results;
 ---
 
 <Layout title={`Season ${frontmatter.name}`}>
   <div class={styles.container}>
-    <h2>Players</h2>
-    <!-- players -->
+    <h1>Season {frontmatter.name}</h1>
 
+    <h2>Results</h2>
+    <Table client:load data={tableData} />
+
+    <h2>Cumulative Points</h2>
     <SeasonLineChart client:load labels={dateLabels} datasets={datasets} />
   </div>
 </Layout>

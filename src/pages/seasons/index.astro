@@ -13,18 +13,18 @@ const seasonFiles = import.meta.glob('../../content/season/*.md', {
 
 const seasons = Object.values(seasonFiles).map((m) => m.frontmatter);
 
-const activeSeason = seasons[seasons.length - 1];
+const currentSeason = seasons[seasons.length - 1];
 const previousSeasons = seasons.slice(0, -1);
 
-const activeSeasonTableData = [
+const currentSeasonTableData = [
   {
-    season: activeSeason.name,
-    numberOfPlayers: activeSeason.numberOfPlayers,
-    numberOfGames: activeSeason.numberOfGames,
-    leader: activeSeason.winnerFirstName,
-    playerSlug: activeSeason.winnerSlug,
-    playerImage: activeSeason.winnerImage,
-    navigate: `/seasons/${activeSeason.slug}`,
+    season: currentSeason.name,
+    numberOfPlayers: currentSeason.numberOfPlayers,
+    numberOfGames: currentSeason.numberOfGames,
+    leader: currentSeason.winnerFirstName,
+    playerSlug: currentSeason.winnerSlug,
+    playerImage: currentSeason.winnerImage,
+    navigate: `/seasons/${currentSeason.slug}`,
   },
 ];
 
@@ -42,8 +42,8 @@ const previousSeasonsTableData = previousSeasons.map((s) => ({
 <Layout title="Seasons">
   <div class={styles.container}>
     <section>
-      <h2>Active season</h2>
-      <Table client:load data={activeSeasonTableData} />
+      <h2>Current season</h2>
+      <Table client:load data={currentSeasonTableData} />
     </section>
 
     <section>
