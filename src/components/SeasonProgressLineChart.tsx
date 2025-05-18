@@ -36,9 +36,7 @@ export default function SeasonLineChart({
       marginRight: 40,
       backgroundColor: 'transparent',
     },
-
     title: { text: undefined },
-
     xAxis: {
       categories: labels,
       tickmarkPlacement: 'on',
@@ -49,18 +47,15 @@ export default function SeasonLineChart({
         },
       },
     },
-
     yAxis: {
       title: { text: null },
       min: 0,
     },
-
     legend: {
       align: 'center',
       verticalAlign: 'bottom',
       layout: 'horizontal',
     },
-
     tooltip: {
       shared: true,
       useHTML: true,
@@ -84,16 +79,13 @@ export default function SeasonLineChart({
         return s;
       },
     },
-
     plotOptions: {
       spline: {
         marker: { enabled: false },
         lineWidth: 2,
       },
     },
-
     series,
-
     responsive: {
       rules: [
         {
@@ -102,7 +94,6 @@ export default function SeasonLineChart({
         },
       ],
     },
-
     credits: { enabled: false },
   };
 
