@@ -50,6 +50,7 @@ const { data: rawGames, error: gamesError } = await supabase
     winner:players!games_winner_id_fkey (
       first_name,
       nickname,
+      prefer_nickname,
       slug,
       image_url
     )
@@ -71,7 +72,8 @@ const { data: rawResults, error: resultsError } = await supabase
     points,
     player:players!season_results_player_id_fkey (
       first_name,
-      last_name,
+      nickname,
+      prefer_nickname,
       slug,
       image_url
     )
@@ -100,14 +102,16 @@ const games = rawGames.map((g: any) => ({
   seasonGame: g.season_game,
   date: formatDate(g.played_on),
   numberOfPlayers: g.no_of_players,
-  winnerFirstName: g.nickname || g.winner?.first_name, // update to allow for nicknames
+  winnerFirstName: g.winner?.prefer_nickname
+    ? g.winner?.nickname
+    : g.winner?.first_name,
   winnerSlug: g.winner?.slug ?? '',
   winnerImage: g.winner?.image_url ?? '',
 }));
 
 const tableData = rawResults.map((r: any) => ({
   place: getOrdinal(r.place),
-  name: `${r.player.first_name} ${r.player.last_name}`,
+  name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
   playerSlug: r.player.slug,
   playerImage: r.player.image_url,
   points: r.points,

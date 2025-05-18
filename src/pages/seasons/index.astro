@@ -14,6 +14,7 @@ const { data: rawSeasons, error } = await supabase
     name,
     number_of_players,
     number_of_games,
+    is_active,
     winner:players!seasons_winner_id_fkey (
       first_name,
       nickname,
@@ -35,6 +36,7 @@ const seasons = rawSeasons.map((s: any) => ({
   name: s.name,
   numberOfPlayers: s.number_of_players,
   numberOfGames: s.number_of_games,
+  isActive: s.is_active,
   winner: {
     firstName: s.winner.first_name,
     nickname: s.winner.nickname,
@@ -44,8 +46,8 @@ const seasons = rawSeasons.map((s: any) => ({
   },
 }));
 
-const currentSeason = seasons[seasons.length - 1];
-const previousSeasons = seasons.slice(0, -1);
+const currentSeason = seasons.filter((s) => s.isActive)[0];
+const previousSeasons = seasons.filter((s) => !s.isActive);
 
 const currentSeasonTableData = [
   {

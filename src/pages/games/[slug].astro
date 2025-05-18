@@ -4,6 +4,7 @@ import { getOrdinal } from 'src/utils';
 
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
+import GameKnockoutNetworkGraph from '@components/GameKnockoutNetworkGraph';
 
 import styles from './_games.module.css';
 
@@ -31,6 +32,8 @@ const { data: rawGameData, error: gameError } = await supabase
     no_of_players,
     winner:players!games_winner_id_fkey(
       first_name,
+      nickname,
+      prefer_nickname,
       slug,
       image_url
     )
@@ -52,7 +55,8 @@ const { data: rawResultsData, error: resultsError } = await supabase
     points,
     player:players!game_results_player_id_fkey(
       first_name,
-      last_name,
+      nickname,
+      prefer_nickname,
       slug,
       image_url
     )
@@ -84,7 +88,9 @@ const game = {
   seasonGame: rawGame.season_game,
   date: formatDate(rawGame.played_on),
   numberOfPlayers: rawGame.no_of_players,
-  winnerFirstName: rawGame.winner?.first_name,
+  winnerFirstName: rawGame.winner?.prefer_nickname
+    ? rawGame.winner?.nickname
+    : rawGame.winner?.first_name,
   winnerSlug: rawGame.winner?.slug ?? '',
   winnerImage: rawGame.winner?.image_url ?? '',
   slug: rawGame.slug,
@@ -92,10 +98,46 @@ const game = {
 
 const tableData = rawResults.map((r) => ({
   place: getOrdinal(r.place),
-  name: `${r.player.first_name} ${r.player.last_name}`,
+  name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
   playerSlug: r.player.slug,
   playerImage: r.player.image_url,
   points: r.points,
+}));
+
+const { data: rawKOs, error: koError } = await supabase
+  .from('game_knockouts')
+  .select(
+    `
+    killer:players!game_knockouts_killer_id_fkey(
+      slug,
+      first_name,
+      nickname,
+      prefer_nickname,
+      image_url
+    ),
+    victim:players!game_knockouts_victim_id_fkey(
+      slug,
+      first_name,
+      nickname,
+      prefer_nickname,
+      image_url
+    )
+  `,
+  )
+  .eq('game_id', rawGameData.id);
+
+if (koError) {
+  console.error('❌ Could not load knockouts:', koError);
+}
+const displayName = (p: any) => (p.prefer_nickname ? p.nickname : p.first_name);
+
+const events = (rawKOs ?? []).map((k: any) => ({
+  killerName: displayName(k.killer),
+  killerSlug: k.killer.slug,
+  killerImage: k.killer.image_url,
+  victimName: displayName(k.victim),
+  victimSlug: k.victim.slug,
+  victimImage: k.victim.image_url,
 }));
 ---
 
@@ -115,5 +157,8 @@ const tableData = rawResults.map((r) => ({
 
     <h2>Results</h2>
     <Table client:load data={tableData} />
+
+    <!-- <h2>Knockouts</h2>
+    <GameKnockoutNetworkGraph client:load events={events} /> -->
   </div>
 </Layout>

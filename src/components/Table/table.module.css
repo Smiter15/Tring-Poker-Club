@@ -8,6 +8,7 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 0;
+  background-color: white;
 }
 
 .table th,

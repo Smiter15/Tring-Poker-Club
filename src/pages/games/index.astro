@@ -62,23 +62,30 @@ const formatDate = (isoString: string) => {
 
   return `${dd}/${mm}/${yy}`;
 };
+
+const currentSeason = seasonNumbers[seasonNumbers.length - 1];
+const currentSeasonGames = seasonsMap[currentSeason].map((game) => ({
+  game: game.seasonGame,
+  date: formatDate(game.date),
+  numberOfPlayers: game.numberOfPlayers,
+  winner: game.winnerFirstName,
+  playerSlug: game.winnerSlug,
+  playerImage: game.winnerImage,
+  navigate: `/games/${game.slug}`,
+}));
 ---
 
 <Layout title="Games">
   <div class={styles.container}>
     <section>
       <h2>Current season games</h2>
-      <!-- <a href={`/seasons/${activeSeason.slug}`}>
-        <strong class={styles.seasonHeader}>
-          Season {activeSeason.name}
-        </strong>
-      </a> -->
+      <Table client:load data={currentSeasonGames} />
     </section>
 
     <section>
       <h2>Previous season games</h2>
       {
-        seasonNumbers.map((season) => {
+        seasonNumbers.slice(0, -1).map((season) => {
           const tableData = seasonsMap[season].map((game) => ({
             game: game.seasonGame,
             date: formatDate(game.date),
