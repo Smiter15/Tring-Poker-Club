@@ -1,6 +1,8 @@
 import { useMemo, useEffect, useState } from 'react';
-import Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
+import * as Highcharts from 'highcharts';
+import { HighchartsReact } from 'highcharts-react-official';
+
+import './GameKnockoutNetworkGraph.css'; // <-- import your CSS
 
 type KOEvent = {
   killerName: string;
@@ -55,13 +57,23 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
     });
 
     // turn nodesMap → array, injecting each node’s marker
+    const IMAGE_SIZE = 48; // px
+
     const nodes = Object.values(nodesMap).map((n) => ({
       id: n.id,
       name: n.name,
-      marker: {
-        symbol: n.imageUrl ? `url(${n.imageUrl})` : undefined,
-        radius: n.imageUrl ? 24 : 12,
-      },
+      marker: n.imageUrl
+        ? {
+            symbol: `url(${n.imageUrl})`,
+            width: IMAGE_SIZE,
+            height: IMAGE_SIZE,
+            // you can still include a small border if you like:
+            lineWidth: 2,
+            lineColor: '#fff',
+          }
+        : {
+            radius: 12,
+          },
     }));
 
     // build link array
@@ -109,7 +121,7 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
   };
 
   return (
-    <div style={{ width: '100%', height: 500 }}>
+    <div className="KnockoutGraph" style={{ width: '100%', height: 500 }}>
       <HighchartsReact highcharts={Highcharts} options={options} />
     </div>
   );

@@ -1,0 +1,9 @@
+/* GameKnockoutNetworkGraph.css */
+
+/* Match any <image> inside a networkgraph markers group */
+.highcharts-networkgraph-series .highcharts-markers > image {
+  /* force the image itself into a circle */
+  clip-path: circle(50%) !important;
+  /* drop any rectangular stroke it might carry */
+  stroke-width: 0 !important;
+}

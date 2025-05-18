@@ -141,6 +141,13 @@ const events = (rawKOs ?? []).map((k: any) => ({
 }));
 ---
 
+<style is:global>
+  .KnockoutGraph svg image {
+    clip-path: circle(50%) !important;
+    -webkit-clip-path: circle(50%) !important;
+  }
+</style>
+
 <Layout title={`Game ${game.seasonGame}`}>
   <div class={styles.container}>
     <h1>
@@ -158,7 +165,7 @@ const events = (rawKOs ?? []).map((k: any) => ({
     <h2>Results</h2>
     <Table client:load data={tableData} />
 
-    <!-- <h2>Knockouts</h2>
-    <GameKnockoutNetworkGraph client:load events={events} /> -->
+    <h2>Knockouts</h2>
+    <GameKnockoutNetworkGraph client:load events={events} />
   </div>
 </Layout>
