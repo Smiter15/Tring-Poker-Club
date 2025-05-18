@@ -8,6 +8,11 @@ h3 {
   margin-top: 2rem;
 }
 
+.date {
+  margin-top: -20px;
+  color: #666;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 1rem;

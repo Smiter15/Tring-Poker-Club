@@ -1,7 +1,6 @@
 import { useMemo, useEffect, useState } from 'react';
 import * as Highcharts from 'highcharts';
 import { HighchartsReact } from 'highcharts-react-official';
-import { faUserCircle } from '@fortawesome/free-solid-svg-icons';
 
 type KOEvent = {
   killerName: string;
@@ -60,20 +59,11 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
 
     // 3) Compute sizes
     const BASE = 48;
-    const multipliers = [1.5, 1.25, 1.1];
+    const multipliers = [1.8, 1.5, 1.25];
     const sizeMap: Record<string, number> = {};
     top3.forEach((name, idx) => {
       sizeMap[name] = Math.round(BASE * multipliers[idx]);
     });
-
-    const [iconW, iconH, , , svgPathData] = faUserCircle.icon;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${iconW} ${iconH}">
-  <path fill="#666" d="${svgPathData}"/>
-</svg>`;
-
-    // encode, but don't wrap in quotes:
-    const encoded = encodeURIComponent(svg);
-    const fallbackUri = `data:image/svg+xml;utf8,${encoded}`;
 
     // 4) Build nodes array
     const nodes = Object.values(nodesMap).map((n) => {
@@ -110,6 +100,8 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
 
   if (!hcLoaded) return null;
 
+  const BASE = 48;
+
   const options: Highcharts.Options = {
     chart: {
       type: 'networkgraph',
@@ -123,19 +115,44 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
         layoutAlgorithm: {
           enableSimulation: true,
           friction: -0.9,
+          linkLength: 35,
+          maxIterations: 300,
         },
-      },
-      series: {
-        dataLabels: { enabled: true },
+        dataLabels: {
+          enabled: true,
+          useHTML: true,
+          allowOverlap: true,
+          linkFormat: '',
+          textPath: { enabled: false },
+          formatter(this: any) {
+            // figure out this node's effective diameter:
+            const m = this.point.marker || {};
+            const diameter =
+              (m.width ?? (m.radius ? m.radius * 2 : BASE)) || BASE;
+            // half the circle + small margin:
+            const offset = diameter / 2;
+            // HTML wrapper so we can margin‐push it down:
+            return `<div style="
+            display:inline-block;
+            margin-top:${offset}px;
+            width:fit-content;
+            text-align:center;
+            font-size:11px;
+            font-weight:bold;
+            color:#333;
+          ">${this.point.name}</div>`;
+          },
+          // we set align & verticalAlign but the HTML margin is doing the real work
+          align: 'center',
+          verticalAlign: 'top',
+        },
       },
     },
     tooltip: {
       formatter(this: any) {
         const pt = this.point;
         if (pt.fromNode) {
-          return `<b>${pt.fromNode.name}</b> → <b>${
-            pt.toNode.name
-          }</b><br/>KOs: ${pt.weight}`;
+          return `<b>${pt.fromNode.name}</b> → <b>${pt.toNode.name}</b><br/>KOs: ${pt.weight}`;
         }
         return `<b>${pt.name}</b>`;
       },
@@ -145,13 +162,14 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
         type: 'networkgraph',
         data: links,
         nodes,
+        // don't re-override dataLabels here
       },
     ],
     credits: { enabled: false },
   };
 
   return (
-    <div className="KnockoutGraph" style={{ width: '100%', height: 500 }}>
+    <div className="KnockoutGraph" style={{ width: '100%', height: 600 }}>
       <HighchartsReact highcharts={Highcharts} options={options} />
     </div>
   );
