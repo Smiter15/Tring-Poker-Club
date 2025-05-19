@@ -1,5 +1,8 @@
 import { useState, useMemo } from 'react';
-import PlayerKnockoutChart from './PlayerKnockoutChart';
+
+import PlayerKnockoutChart from '../PlayerKnockoutChart';
+
+import styles from './FilterableKnockoutChart.module.css';
 
 interface KORecord {
   season_id: number;
@@ -15,47 +18,39 @@ interface Props {
 }
 
 export default function FilterableKnockoutChart({ rawKOs, playerId }: Props) {
-  // 1) Compute all seasons present
   const seasons = useMemo(
     () => Array.from(new Set(rawKOs.map((k) => k.season_id))).sort(),
     [rawKOs],
   );
-
-  // 2) Dropdown state
   const [season, setSeason] = useState<string | number>('all');
+  const filtered = useMemo(
+    () =>
+      season === 'all'
+        ? rawKOs
+        : rawKOs.filter((k: any) => k.season_id === Number(season)),
+    [season, rawKOs],
+  );
 
-  // 3) Filtered KOs by season
-  const filtered = useMemo(() => {
-    return season === 'all'
-      ? rawKOs
-      : rawKOs.filter((k) => k.season_id === Number(season));
-  }, [season, rawKOs]);
-
-  // 4) Roll up kills/deaths per opponent
   const stats = useMemo(() => {
     const map: Record<string, { kills: number; deaths: number }> = {};
     filtered.forEach((k) => {
       const iAmKiller = k.killer_id === playerId;
       const other = iAmKiller ? k.victim : k.killer;
       const name = other.prefer_nickname ? other.nickname : other.first_name;
-
       if (!map[name]) map[name] = { kills: 0, deaths: 0 };
       if (iAmKiller) map[name].kills++;
       else map[name].deaths++;
     });
-    // convert to array
-    return Object.entries(map).map(([opponentName, counts]) => ({
+    return Object.entries(map).map(([opponentName, c]) => ({
       opponentName,
-      kills: counts.kills,
-      deaths: counts.deaths,
+      kills: c.kills,
+      deaths: c.deaths,
     }));
   }, [filtered, playerId]);
 
   return (
-    <div>
-      <div
-        style={{ textAlign: 'right', marginBottom: '4rem', marginTop: '-40px' }}
-      >
+    <>
+      <div className={styles.controls}>
         <label>
           Season:&nbsp;
           <select value={season} onChange={(e) => setSeason(e.target.value)}>
@@ -75,6 +70,6 @@ export default function FilterableKnockoutChart({ rawKOs, playerId }: Props) {
           {season === 'all' ? 'any season' : `Season ${season}`}.
         </p>
       )}
-    </div>
+    </>
   );
 }

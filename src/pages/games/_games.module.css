@@ -22,3 +22,48 @@ h3 {
     margin-top: 1rem;
   }
 }
+
+/* WINNER SECTION */
+.winner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Circular avatar, border & shadow just like player page */
+.winnerImage {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #333;
+}
+
+/* Winner name styling */
+.winnerLink {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #333;
+  text-decoration: none;
+}
+
+.winnerLink:hover {
+  text-decoration: underline;
+}
+
+/* Mobile tweaks */
+@media (max-width: 768px) {
+  .winner {
+    flex-direction: column;
+    text-align: center;
+  }
+  .winnerImage {
+    width: 80px;
+    height: 80px;
+  }
+  .winnerLink {
+    margin-top: 0.5rem;
+  }
+}

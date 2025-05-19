@@ -64,7 +64,7 @@ export default function SeasonLineChart({
           .slice()
           .sort((a: any, b: any) => b.y! - a.y!);
 
-        let s = `<div style="margin-bottom:4px"><b>${this.category}</b><br />Game ${this.x + 1}</div><table>`;
+        let s = `<div style="margin-bottom:4px"><b>Game ${this.x + 1}</b><br />${this.category}</div><table>`;
 
         pts.forEach((p: any) => {
           s +=

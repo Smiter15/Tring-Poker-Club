@@ -19,16 +19,29 @@ import styles from './Layout.module.css';
         <div class={styles.logo}>
           <a href="/" class={styles.logoLink}>Tring Poker Club</a>
         </div>
-        <nav class={styles.nav}>
+
+        <!-- 1) Hamburger button -->
+        <button
+          class={styles.burger}
+          aria-label="Toggle menu"
+          onclick={`document.getElementById('nav').classList.toggle('${styles.open}')`}
+        >
+          &#9776;
+        </button>
+
+        <!-- 2) Give nav an ID so our button can toggle it -->
+        <nav id="nav" class={styles.nav}>
           <a class={styles.navLink} href="/seasons">Seasons</a>
           <a class={styles.navLink} href="/games">Games</a>
           <a class={styles.navLink} href="/players">Players</a>
         </nav>
       </div>
     </header>
+
     <main class={styles.main}>
       <slot />
     </main>
+
     <footer class={styles.footer}>
       <p>Site built by Matt 2</p>
       <p>

@@ -35,7 +35,7 @@ const players = rawPlayers.map((p) => ({
   nickname: p.nickname,
   gamesPlayed: p.games_played,
   wins: p.wins,
-  bubbles: p.bubbles,
+  // bubbles: p.bubbles,
 }));
 
 const tableData = players.map((player) => ({
@@ -44,7 +44,7 @@ const tableData = players.map((player) => ({
   playerSlug: player.slug,
   gamesPlayed: player.gamesPlayed,
   wins: player.wins,
-  bubbles: player.bubbles,
+  // bubbles: player.bubbles,
   navigate: `/players/${player.slug}`,
 }));
 ---
