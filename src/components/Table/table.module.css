@@ -21,10 +21,9 @@
 .table th {
   background-color: #eaeaea;
   color: #757575;
-  font-weight: 600 !important;
+  font-weight: 600;
   padding: 16px 8px;
   font-size: 14px;
-  font-weight: 400;
   cursor: pointer;
   user-select: none;
 }
@@ -118,6 +117,8 @@
 
   .table th {
     padding: 14px 2px;
+    font-weight: 500;
+    font-size: 12px;
   }
 
   .table td {
