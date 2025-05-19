@@ -98,3 +98,29 @@
 .chevron {
   width: 10px;
 }
+
+/* show the long label by default, hide the short one */
+.longLabel {
+  display: inline;
+}
+.shortLabel {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* on mobile, swap them */
+  .longLabel {
+    display: none;
+  }
+  .shortLabel {
+    display: inline;
+  }
+
+  .table th {
+    padding: 14px 2px;
+  }
+
+  .table td {
+    padding: 8px 2px;
+  }
+}

@@ -79,26 +79,47 @@ export default function Table({ data }: TableProps) {
         <table className={styles.table}>
           <thead>
             <tr>
-              {headers.map((field) => (
-                <th key={field} onClick={onHeaderClick(field)}>
-                  <div>
-                    <span>{formatHeader(field)}</span>
-                    <FontAwesomeIcon
-                      icon={
-                        sortField === field
-                          ? sortDir === 'desc'
-                            ? faChevronDown
-                            : faChevronUp
-                          : faChevronDown
-                      }
-                      className={styles.sortIcon}
-                      style={{
-                        visibility: sortField === field ? 'visible' : 'hidden',
-                      }}
-                    />
-                  </div>
-                </th>
-              ))}
+              {headers.map((field) => {
+                const fullText = formatHeader(field); // e.g. "Number Of Players" or "Date"
+                const isNumberOf = fullText
+                  .toLowerCase()
+                  .startsWith('number of ');
+                // if it’s a “Number Of …” header, change to “No. …”, otherwise just repeat the full text
+                const shortText = isNumberOf
+                  ? 'No. ' + fullText.slice('Number Of '.length)
+                  : fullText;
+
+                return (
+                  <th
+                    key={field}
+                    data-field={field}
+                    onClick={onHeaderClick(field)}
+                  >
+                    <div>
+                      {/* desktop: show this */}
+                      <span className={styles.longLabel}>{fullText}</span>
+                      {/* mobile: show this (falls back to fullText when not a Number Of…) */}
+                      <span className={styles.shortLabel}>{shortText}</span>
+
+                      <FontAwesomeIcon
+                        icon={
+                          sortField === field
+                            ? sortDir === 'desc'
+                              ? faChevronDown
+                              : faChevronUp
+                            : faChevronDown
+                        }
+                        className={styles.sortIcon}
+                        style={{
+                          visibility:
+                            sortField === field ? 'visible' : 'hidden',
+                        }}
+                      />
+                    </div>
+                  </th>
+                );
+              })}
+
               {hasNavigate && <th aria-label="Actions" />}
             </tr>
           </thead>
