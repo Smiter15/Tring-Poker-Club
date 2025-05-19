@@ -51,18 +51,11 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
       linkCounts[key] = (linkCounts[key] || 0) + 1;
     });
 
-    // 2) Identify top‐3 killers
-    const sorted = Object.entries(killCounts)
-      .sort(([, a], [, b]) => b - a)
-      .map(([name]) => name);
-    const top3 = sorted.slice(0, 3);
-
-    // 3) Compute sizes
+    // 2+3) Compute size per killer: diameter = BASE * (1 + 0.25*KOs)
     const BASE = 48;
-    const multipliers = [1.8, 1.5, 1.25];
     const sizeMap: Record<string, number> = {};
-    top3.forEach((name, idx) => {
-      sizeMap[name] = Math.round(BASE * multipliers[idx]);
+    Object.entries(killCounts).forEach(([name, count]) => {
+      sizeMap[name] = Math.round(BASE * (1 + count * 0.25));
     });
 
     // 4) Build nodes array

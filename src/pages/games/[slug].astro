@@ -139,6 +139,44 @@ const events = (rawKOs ?? []).map((k: any) => ({
   victimSlug: k.victim.slug,
   victimImage: k.victim.image_url,
 }));
+
+const grouped = events.reduce(
+  (acc, ev) => {
+    const key = ev.killerName;
+    if (!acc[key]) {
+      acc[key] = {
+        killerName: ev.killerName,
+        killerSlug: ev.killerSlug,
+        killerImage: ev.killerImage,
+        victims: {} as Record<string, number>,
+      };
+    }
+    acc[key].victims[ev.victimName] =
+      (acc[key].victims[ev.victimName] || 0) + 1;
+    return acc;
+  },
+  {} as Record<
+    string,
+    {
+      killerName: string;
+      killerSlug: string;
+      killerImage: string;
+      victims: Record<string, number>;
+    }
+  >,
+);
+
+const knockoutTableData = Object.values(grouped).map(
+  ({ killerName, killerSlug, killerImage, victims }) => ({
+    name: killerName,
+    playerSlug: killerSlug,
+    playerImage: killerImage,
+
+    Victims: Object.entries(victims)
+      .map(([victim, count]) => `${victim}${count > 1 ? ` (${count})` : ''}`)
+      .join(', '),
+  }),
+);
 ---
 
 <style is:global>
@@ -151,7 +189,7 @@ const events = (rawKOs ?? []).map((k: any) => ({
 <Layout title={`Game ${game.seasonGame}`}>
   <div class={styles.container}>
     <h1>
-      Season {game.seasonId} – Game {game.seasonGame}
+      Season {game.seasonId} - Game {game.seasonGame}
     </h1>
     <p class={styles.date}>{game.date}</p>
 
@@ -169,7 +207,8 @@ const events = (rawKOs ?? []).map((k: any) => ({
     {
       events.length > 0 && (
         <>
-          <h2>Knockouts</h2>
+          <h2 style={{ marginTop: '50px' }}>Knockouts</h2>
+          <Table client:load data={knockoutTableData} />
           <GameKnockoutNetworkGraph client:load events={events} />
         </>
       )

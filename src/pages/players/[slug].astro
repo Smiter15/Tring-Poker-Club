@@ -4,6 +4,7 @@ import { getOrdinal } from 'src/utils';
 
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
+import FilterableKnockoutChart from '@components/FilterableKnockoutChart';
 
 import styles from './_players.module.css';
 
@@ -69,7 +70,6 @@ const formatDate = (iso: string) => {
   const dd = String(d.getDate()).padStart(2, '0');
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const yy = String(d.getFullYear()).slice(-2);
-
   return `${dd}/${mm}/${yy}`;
 };
 
@@ -92,6 +92,54 @@ rawResults.forEach((r: any) => {
 const seasonNumbers = Object.keys(seasonsMap)
   .map(Number)
   .sort((a, b) => a - b);
+
+// ─── Fetch KOs where this player is killer or victim ───
+const { data: rawKOs, error: koError } = await supabase
+  .from('game_knockouts')
+  .select(
+    `
+    season_id,
+    game_id,
+    killer_id,
+    victim_id,
+    killer:players!game_knockouts_killer_id_fkey(
+      slug,
+      first_name,
+      nickname,
+      prefer_nickname
+    ),
+    victim:players!game_knockouts_victim_id_fkey(
+      slug,
+      first_name,
+      nickname,
+      prefer_nickname
+    )
+  `,
+  )
+  .or(`killer_id.eq.${rawPlayer.id},victim_id.eq.${rawPlayer.id}`);
+
+if (koError) {
+  console.error('❌ Could not load knockouts:', koError);
+}
+
+// Build per-opponent kill/death tallies
+type KOStat = { kills: number; deaths: number };
+const statsMap: Record<string, KOStat> = {};
+
+(rawKOs ?? []).forEach((k: any) => {
+  const amKiller = k.killer_id === rawPlayer.id;
+  const other = amKiller ? k.victim! : k.killer!;
+  const name = other.prefer_nickname ? other.nickname : other.first_name;
+
+  if (!statsMap[name]) statsMap[name] = { kills: 0, deaths: 0 };
+  if (amKiller) statsMap[name].kills++;
+  else statsMap[name].deaths++;
+});
+
+// Turn into array for the chart
+const knockoutStats = Object.entries(statsMap).map(
+  ([opponentName, { kills, deaths }]) => ({ opponentName, kills, deaths }),
+);
 ---
 
 <Layout title={`${player.firstName} ${player.lastName}`}>
@@ -143,11 +191,26 @@ const seasonNumbers = Object.keys(seasonsMap)
 
         return (
           <section>
-            <h3>Season {seasonId}</h3>
+            <h3 style={{ marginTop: '30px' }}>Season {seasonId}</h3>
             <Table client:load data={tableData} />
           </section>
         );
       })
+    }
+
+    {
+      rawKOs && rawKOs.length > 0 && (
+        <section style="margin-top:50px">
+          <div>
+            <h2>Knockouts vs Opponents</h2>
+            <FilterableKnockoutChart
+              client:load
+              rawKOs={rawKOs}
+              playerId={rawPlayer.id}
+            />
+          </div>
+        </section>
+      )
     }
   </div>
 </Layout>
