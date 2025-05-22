@@ -28,7 +28,7 @@ const { slug } = Astro.params as { slug: string };
 
 const { data: season, error: seasonError } = await supabase
   .from('seasons')
-  .select('id, name')
+  .select('id, name, is_active')
   .eq('slug', slug)
   .single();
 
@@ -151,7 +151,7 @@ const datasets = lines.map((line: string) => {
   <div class={styles.container}>
     <h1>Season {season.name}</h1>
 
-    <h2>Results</h2>
+    <h2>{season.is_active ? 'Current standings' : 'Results'}</h2>
     <Table client:load data={tableData} />
 
     <h2>Cumulative Points</h2>
