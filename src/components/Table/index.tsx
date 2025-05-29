@@ -173,38 +173,40 @@ export default function Table({ data }: TableProps) {
                         const playerPath = `/players/${row.playerSlug}`;
 
                         return (
-                          <td key={header} className={styles.playerCell}>
-                            <a
-                              href={playerPath}
-                              style={{
-                                all: 'unset',
-                                cursor: 'pointer',
-                                position: 'relative',
-                              }}
-                            >
-                              {row.place === '1st' && (
-                                <FontAwesomeIcon
-                                  icon={faCrown}
-                                  className={styles.crownIcon}
-                                  color="#FFD700"
-                                />
-                              )}
-                              {row.playerImage ? (
-                                <img
-                                  src={row.playerImage}
-                                  alt={playerName}
-                                  className={styles.playerImage}
-                                />
-                              ) : (
-                                <FontAwesomeIcon
-                                  icon={faUserCircle}
-                                  className={styles.avatarIcon}
-                                />
-                              )}
-                            </a>
-                            <a className={styles.link} href={playerPath}>
-                              {playerName}
-                            </a>
+                          <td key={header}>
+                            <div className={styles.playerCellInner}>
+                              <a
+                                href={playerPath}
+                                style={{
+                                  all: 'unset',
+                                  cursor: 'pointer',
+                                  position: 'relative',
+                                }}
+                              >
+                                {row.place === '1st' && (
+                                  <FontAwesomeIcon
+                                    icon={faCrown}
+                                    className={styles.crownIcon}
+                                    color="#FFD700"
+                                  />
+                                )}
+                                {row.playerImage ? (
+                                  <img
+                                    src={row.playerImage}
+                                    alt={playerName}
+                                    className={styles.playerImage}
+                                  />
+                                ) : (
+                                  <FontAwesomeIcon
+                                    icon={faUserCircle}
+                                    className={styles.avatarIcon}
+                                  />
+                                )}
+                              </a>
+                              <a className={styles.link} href={playerPath}>
+                                {playerName}
+                              </a>
+                            </div>
                           </td>
                         );
                       }

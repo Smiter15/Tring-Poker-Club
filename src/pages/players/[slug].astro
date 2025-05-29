@@ -22,7 +22,7 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params as { slug: string };
 
-const { data: rawPlayer, error: playerError } = await supabase
+const { data: rawPlayer, error: playerError }: any = await supabase
   .from('players')
   .select(
     `
@@ -32,8 +32,7 @@ const { data: rawPlayer, error: playerError } = await supabase
     image_url,
     nickname,
     bio,
-    wins,
-    bubbles
+    wins
   `,
   )
   .eq('slug', slug)
@@ -80,7 +79,6 @@ const player = {
   nickname: rawPlayer.nickname,
   bio: rawPlayer.bio || '',
   wins: rawPlayer.wins,
-  bubbles: rawPlayer.bubbles,
 };
 
 const seasonsMap: Record<number, typeof rawResults> = {};
@@ -135,11 +133,6 @@ const statsMap: Record<string, KOStat> = {};
   if (amKiller) statsMap[name].kills++;
   else statsMap[name].deaths++;
 });
-
-// Turn into array for the chart
-const knockoutStats = Object.entries(statsMap).map(
-  ([opponentName, { kills, deaths }]) => ({ opponentName, kills, deaths }),
-);
 ---
 
 <Layout title={`${player.firstName} ${player.lastName}`}>
@@ -162,12 +155,16 @@ const knockoutStats = Object.entries(statsMap).map(
         </h1>
         <div class={styles.stats}>
           <div class={styles.statItem}>
-            <span class={styles.statNumber}>{player.wins}</span>
-            <span class={styles.statLabel}>Wins</span>
+            <span class={styles.statNumber}>{seasonNumbers.length}</span>
+            <span class={styles.statLabel}>Seasons played</span>
           </div>
           <div class={styles.statItem}>
-            <span class={styles.statNumber}>{player.bubbles}</span>
-            <span class={styles.statLabel}>Bubbles</span>
+            <span class={styles.statNumber}>{Object.values(seasonsMap).reduce((sum, arr) => sum + arr.length, 0)}</span>
+            <span class={styles.statLabel}>Games played</span>
+          </div>
+          <div class={styles.statItem}>
+            <span class={styles.statNumber}>{player.wins}</span>
+            <span class={styles.statLabel}>Wins</span>
           </div>
         </div>
         {player.bio && <article class={styles.bio}>{player.bio}</article>}

@@ -16,8 +16,7 @@ const { data: rawPlayers, error } = await supabase
     image_url,
     nickname,
     games_played,
-    wins,
-    bubbles
+    wins
   `,
   )
   .order('last_name', { ascending: true });
@@ -35,7 +34,6 @@ const players = rawPlayers.map((p) => ({
   nickname: p.nickname,
   gamesPlayed: p.games_played,
   wins: p.wins,
-  // bubbles: p.bubbles,
 }));
 
 const tableData = players.map((player) => ({
@@ -44,7 +42,6 @@ const tableData = players.map((player) => ({
   playerSlug: player.slug,
   gamesPlayed: player.gamesPlayed,
   wins: player.wins,
-  // bubbles: player.bubbles,
   navigate: `/players/${player.slug}`,
 }));
 ---

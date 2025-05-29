@@ -100,7 +100,7 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
       type: 'networkgraph',
       marginTop: 40,
       backgroundColor: 'transparent',
-      height: 500,
+      height: 700,
       events: {
         load(this: Highcharts.Chart) {
           const H: any = Highcharts;

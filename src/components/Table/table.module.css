@@ -50,7 +50,7 @@
   background-color: #f1f1f1;
 }
 
-.playerCell {
+.playerCellInner {
   display: flex;
   align-items: center;
 }
