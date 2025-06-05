@@ -91,16 +91,23 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
     return { nodes, links };
   }, [events]);
 
-  if (!hcLoaded) return null;
+  const chartHeight = useMemo(() => {
+    const MIN_HEIGHT = 400;      
+    const PER_NODE = 30;            
+    const THRESHOLD = 10;        
 
-  const BASE = 48;
+    const extra = Math.max(0, nodes.length - THRESHOLD) * PER_NODE;
+    return MIN_HEIGHT + extra
+  }, [nodes]);
+
+  if (!hcLoaded) return null;
 
   const options: Highcharts.Options = {
     chart: {
       type: 'networkgraph',
       marginTop: 40,
       backgroundColor: 'transparent',
-      height: 700,
+      height: chartHeight + 200,
       events: {
         load(this: Highcharts.Chart) {
           const H: any = Highcharts;
@@ -169,17 +176,17 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
           formatter(this: any) {
             const m = this.point.marker || {};
             const diameter =
-              (m.width ?? (m.radius ? m.radius * 2 : BASE)) || BASE;
+              (m.width ?? (m.radius ? m.radius * 2 : 48)) || 48;
             const offset = diameter / 2;
             return `<div style="
-            display:inline-block;
-            margin-top:${offset}px;
-            width:fit-content;
-            text-align:center;
-            font-size:11px;
-            font-weight:bold;
-            color:#333;
-          ">${this.point.name}</div>`;
+              display:inline-block;
+              margin-top:${offset}px;
+              width:fit-content;
+              text-align:center;
+              font-size:11px;
+              font-weight:bold;
+              color:#333;
+            ">${this.point.name}</div>`;
           },
           align: 'center',
           verticalAlign: 'top',
@@ -206,7 +213,14 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
   };
 
   return (
-    <div className="KnockoutGraph" style={{ width: '100%' }}>
+    <div
+      className="KnockoutGraph"
+      style={{
+        width: '100%',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+      }}
+    >
       <HighchartsReact highcharts={Highcharts} options={options} />
     </div>
   );
