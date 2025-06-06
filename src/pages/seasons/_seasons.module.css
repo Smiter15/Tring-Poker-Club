@@ -1,23 +1,69 @@
-.container {
-  max-width: 1080px;
-  margin: 0 auto 2rem;
-  padding: 2rem;
-}
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
-.seasonHeader {
-  margin-top: 2rem;
+:root {
+  --brand-color: #1a2e35;
+  --accent-color: #c0392b;
+  --background-light: #f9f9f9;
+  --text-dark: #2c3e50;
+  --heading-font: 'Roboto', sans-serif;
+  --body-font: 'Roboto', sans-serif;
 }
 
 h2 {
   margin-top: 3rem;
 }
 
-@media (max-width: 768px) {
-  .container {
-    padding: 1rem;
-  }
+.container {
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  font-family: var(--body-font);
+  color: var(--text-dark);
+}
 
-  h2 {
-    margin-top: 2rem;
+.rulesSection {
+  background-color: var(--background-light);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  padding: 2rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.rulesTitle {
+  font-family: var(--heading-font);
+  font-weight: 700;
+  font-size: 1.75rem;
+  color: var(--brand-color);
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--accent-color);
+  padding-bottom: 0.5rem;
+}
+
+.rulesList {
+  list-style-type: disc;
+  margin-bottom: 1rem;
+}
+
+.pointsList {
+  list-style-type: circle;
+  margin-top: 0.5rem;
+}
+
+.sectionHeader {
+  font-family: var(--heading-font);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--brand-color);
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .rulesTitle {
+    font-size: 1.5rem;
+  }
+  .sectionHeader {
+    font-size: 1.25rem;
   }
 }

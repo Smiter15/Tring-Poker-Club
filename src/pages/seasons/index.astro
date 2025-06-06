@@ -76,13 +76,35 @@ const previousSeasonsTableData = previousSeasons.map((s) => ({
 
 <Layout title="Seasons">
   <div class={styles.container}>
+    <section class={styles.rulesSection}>
+      <h2 class={styles.rulesTitle}>Rules for current season</h2>
+      <ul class={styles.rulesList}>
+        <li>Starting stack: 10 000</li>
+        <li>12-minute blinds</li>
+        <li>Starting blinds: 100 / 200</li>
+        <li>
+          Final table (top 8) points:
+          <ul class={styles.pointsList}>
+            <li>1st - 100 points</li>
+            <li>2nd - 80 points</li>
+            <li>3rd - 65 points</li>
+            <li>4th - 55 points</li>
+            <li>5th - 50 points</li>
+            <li>6th - 45 points</li>
+            <li>7th - 40 points</li>
+            <li>8th - 35 points</li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+
     <section>
-      <h2>Current season</h2>
+      <h2 class={styles.sectionHeader}>Current season</h2>
       <Table client:load data={currentSeasonTableData} />
     </section>
 
     <section>
-      <h2>Previous seasons</h2>
+      <h2 class={styles.sectionHeader}>Previous seasons</h2>
       <Table client:load data={previousSeasonsTableData} />
     </section>
   </div>

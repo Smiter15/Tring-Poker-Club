@@ -1,6 +1,5 @@
 ---
 import { supabase } from 'src/db/supabase';
-
 import { getOrdinal } from 'src/utils';
 
 import Layout from '@layouts/Layout.astro';
@@ -71,6 +70,7 @@ const { data: rawResults, error: resultsError } = await supabase
     place,
     points,
     player:players!season_results_player_id_fkey (
+      id,
       first_name,
       nickname,
       prefer_nickname,
@@ -92,7 +92,6 @@ const formatDate = (iso: string) => {
   const dd = String(d.getDate()).padStart(2, '0');
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const yy = String(d.getFullYear()).slice(-2);
-
   return `${dd}/${mm}/${yy}`;
 };
 
@@ -103,19 +102,32 @@ const games = rawGames.map((g: any) => ({
   date: formatDate(g.played_on),
   numberOfPlayers: g.no_of_players,
   winnerFirstName: g.winner?.prefer_nickname
-    ? g.winner?.nickname
-    : g.winner?.first_name,
+    ? g.winner.nickname
+    : g.winner.first_name,
   winnerSlug: g.winner?.slug ?? '',
   winnerImage: g.winner?.image_url ?? '',
 }));
 
-const tableData = rawResults.map((r: any) => ({
-  place: getOrdinal(r.place),
-  name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
-  playerSlug: r.player.slug,
-  playerImage: r.player.image_url,
-  points: r.points,
-}));
+// ─── Build tableData with gamesPlayed count ─────────────────────────────────
+const tableData = await Promise.all(
+  rawResults.map(async (r: any) => {
+    const playerId = r.player.id;
+    const { count: gamesPlayed } = await supabase
+      .from('game_results')
+      .select('*', { count: 'exact', head: true })
+      .eq('season_id', seasonId)
+      .eq('player_id', playerId);
+
+    return {
+      place: getOrdinal(r.place),
+      name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
+      playerSlug: r.player.slug,
+      playerImage: r.player.image_url,
+      gamesPlayed: gamesPlayed || 0,
+      points: r.points,
+    };
+  }),
+);
 
 const gamesTableData = games.map((g) => ({
   game: g.seasonGame,

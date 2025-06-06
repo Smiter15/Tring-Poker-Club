@@ -15,14 +15,24 @@ interface Props {
 
 export default function GameKnockoutNetworkGraph({ events }: Props) {
   const [hcLoaded, setHcLoaded] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1024,
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     import('highcharts/modules/networkgraph').then(() => setHcLoaded(true));
+
+    function handleResize() {
+      setWindowWidth(window.innerWidth);
+    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const isMobile = windowWidth < 768;
+
   const { nodes, links } = useMemo(() => {
-    // 1) Build maps & tallies
     const nodesMap: Record<
       string,
       { id: string; name: string; imageUrl?: string }
@@ -51,18 +61,17 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
       linkCounts[key] = (linkCounts[key] || 0) + 1;
     });
 
-    // 2+3) Compute size per killer: diameter = BASE * (1 + 0.25*KOs)
     const BASE = 48;
     const sizeMap: Record<string, number> = {};
     Object.entries(killCounts).forEach(([name, count]) => {
-      sizeMap[name] = Math.round(BASE * (1 + count * 0.25));
+      const originalSize = Math.round(BASE * (1 + count * 0.25));
+      sizeMap[name] = isMobile ? Math.round(originalSize / 2) : originalSize;
     });
 
-    // 4) Build nodes array
-    const nodes = Object.values(nodesMap).map((n) => {
+    const nodesArr = Object.values(nodesMap).map((n) => {
       const isImage = !!n.imageUrl;
       if (isImage) {
-        const size = sizeMap[n.id] || BASE;
+        const size = sizeMap[n.id] || (isMobile ? BASE / 2 : BASE);
         return {
           id: n.id,
           name: n.name,
@@ -75,39 +84,43 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
           },
         };
       }
+      const radius = isMobile ? 6 : 12;
       return {
         id: n.id,
         name: n.name,
-        marker: { radius: 12 },
+        marker: { radius },
       };
     });
 
-    // 5) Build links array
-    const links = Object.entries(linkCounts).map(([key, weight]) => {
+    const linksArr = Object.entries(linkCounts).map(([key, weight]) => {
       const [from, to] = key.split('|');
       return { from, to, weight };
     });
 
-    return { nodes, links };
-  }, [events]);
+    return { nodes: nodesArr, links: linksArr };
+  }, [events, isMobile]);
 
   const chartHeight = useMemo(() => {
-    const MIN_HEIGHT = 400;      
-    const PER_NODE = 30;            
-    const THRESHOLD = 10;        
-
+    const MIN_HEIGHT = 400;
+    const PER_NODE = 30;
+    const THRESHOLD = 10;
     const extra = Math.max(0, nodes.length - THRESHOLD) * PER_NODE;
-    return MIN_HEIGHT + extra
+    return MIN_HEIGHT + extra;
   }, [nodes]);
 
   if (!hcLoaded) return null;
+
+  // Determine arrow length: half on mobile
+  const arrowLen = isMobile ? 6 : 12;
+  // Also halve link length if desired
+  const linkLen = isMobile ? 17.5 : 35;
 
   const options: Highcharts.Options = {
     chart: {
       type: 'networkgraph',
       marginTop: 40,
       backgroundColor: 'transparent',
-      height: chartHeight + 200,
+      height: isMobile ? chartHeight / 2 + 200 : chartHeight + 200,
       events: {
         load(this: Highcharts.Chart) {
           const H: any = Highcharts;
@@ -118,31 +131,26 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
               const from = this.fromNode;
               const to = this.toNode;
 
-              // compute angle & radius
               const dx = to.plotX - from.plotX;
               const dy = to.plotY - from.plotY;
               const angle = Math.atan2(dy, dx);
               const m = to.marker || {};
               const r = m.width ? m.width / 2 : m.radius ? m.radius : 12;
 
-              // arrowhead dimensions
-              const len = 12;
+              // Use arrowLen from closure
+              const len = arrowLen;
               const wid = 6;
 
-              // tip of arrow (just outside the node)
               const tx = to.plotX - Math.cos(angle) * r;
               const ty = to.plotY - Math.sin(angle) * r;
-              // base of the arrow
               const bx = tx - Math.cos(angle) * len;
               const by = ty - Math.sin(angle) * len;
 
-              // wings
               const wx1 = bx + Math.sin(angle) * wid;
               const wy1 = by - Math.cos(angle) * wid;
               const wx2 = bx - Math.sin(angle) * wid;
               const wy2 = by + Math.cos(angle) * wid;
 
-              // return SVG commands: line + two wing lines
               return [
                 ['M', from.plotX, from.plotY],
                 ['L', tx, ty],
@@ -154,7 +162,6 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
             },
           );
 
-          // force a redraw so that our patch takes effect immediately
           this.series.forEach((s: any) => s.redraw());
         },
       },
@@ -166,7 +173,7 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
         layoutAlgorithm: {
           enableSimulation: true,
           friction: -0.9,
-          linkLength: 35,
+          linkLength: linkLen,
           maxIterations: 300,
         },
         dataLabels: {
@@ -175,8 +182,7 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
           allowOverlap: true,
           formatter(this: any) {
             const m = this.point.marker || {};
-            const diameter =
-              (m.width ?? (m.radius ? m.radius * 2 : 48)) || 48;
+            const diameter = (m.width ?? (m.radius ? m.radius * 2 : 48)) || 48;
             const offset = diameter / 2;
             return `<div style="
               display:inline-block;
