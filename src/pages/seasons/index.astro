@@ -12,8 +12,6 @@ const { data: rawSeasons, error } = await supabase
     `
     slug,
     name,
-    number_of_players,
-    number_of_games,
     is_active,
     winner:players!seasons_winner_id_fkey (
       first_name,
@@ -31,20 +29,34 @@ if (error) {
   throw new Error('Could not load seasons');
 }
 
-const seasons = rawSeasons.map((s: any) => ({
-  slug: s.slug,
-  name: s.name,
-  numberOfPlayers: s.number_of_players,
-  numberOfGames: s.number_of_games,
-  isActive: s.is_active,
-  winner: {
-    firstName: s.winner.first_name,
-    nickname: s.winner.nickname,
-    preferNickname: s.winner.prefer_nickname,
-    slug: s.winner.slug,
-    imageUrl: s.winner.image_url,
-  },
-}));
+const seasons = await Promise.all(
+  rawSeasons.map(async (s: any) => {
+    const { count: numberOfGames } = await supabase
+      .from('games')
+      .select('*', { count: 'exact', head: true })
+      .eq('season_id', s.slug);
+
+    const { count: numberOfPlayers } = await supabase
+      .from('season_results')
+      .select('*', { count: 'exact', head: true })
+      .eq('season_id', s.slug);
+
+    return {
+      slug: s.slug,
+      name: s.name,
+      numberOfPlayers,
+      numberOfGames,
+      isActive: s.is_active,
+      winner: {
+        firstName: s.winner.first_name,
+        nickname: s.winner.nickname,
+        preferNickname: s.winner.prefer_nickname,
+        slug: s.winner.slug,
+        imageUrl: s.winner.image_url,
+      },
+    };
+  }),
+);
 
 const currentSeason = seasons.filter((s) => s.isActive)[0];
 const previousSeasons = seasons.filter((s) => !s.isActive);

@@ -10,13 +10,12 @@ const { data: rawPlayers, error } = await supabase
   .from('players')
   .select(
     `
+    id,
     slug,
     first_name,
     last_name,
     image_url,
-    nickname,
-    games_played,
-    wins
+    nickname
   `,
   )
   .order('last_name', { ascending: true });
@@ -26,24 +25,29 @@ if (error) {
   throw new Error('Could not load players');
 }
 
-const players = rawPlayers.map((p) => ({
-  slug: p.slug,
-  firstName: p.first_name,
-  lastName: p.last_name,
-  image: p.image_url,
-  nickname: p.nickname,
-  gamesPlayed: p.games_played,
-  wins: p.wins,
-}));
+const tableData = await Promise.all(
+  rawPlayers.map(async (p: any) => {
+    const { count: gamesPlayed } = await supabase
+      .from('game_results')
+      .select('*', { count: 'exact', head: true })
+      .eq('player_id', p.id);
 
-const tableData = players.map((player) => ({
-  name: `${player.firstName}${player.nickname ? ` "${player.nickname}"` : ''} ${player.lastName}`,
-  playerImage: player.image,
-  playerSlug: player.slug,
-  gamesPlayed: player.gamesPlayed,
-  wins: player.wins,
-  navigate: `/players/${player.slug}`,
-}));
+    const { count: wins } = await supabase
+      .from('game_results')
+      .select('*', { count: 'exact', head: true })
+      .eq('place', 1)
+      .eq('player_id', p.id);
+
+    return {
+      name: `${p.first_name}${p.nickname ? ` "${p.nickname}"` : ''} ${p.last_name}`,
+      playerImage: p.image_url,
+      playerSlug: p.slug,
+      gamesPlayed,
+      wins,
+      navigate: `/players/${p.slug}`,
+    };
+  }),
+);
 ---
 
 <Layout title="Players">

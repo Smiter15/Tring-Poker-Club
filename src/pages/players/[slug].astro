@@ -31,8 +31,7 @@ const { data: rawPlayer, error: playerError }: any = await supabase
     last_name,
     image_url,
     nickname,
-    bio,
-    wins
+    bio
   `,
   )
   .eq('slug', slug)
@@ -78,8 +77,13 @@ const player = {
   image: rawPlayer.image_url,
   nickname: rawPlayer.nickname,
   bio: rawPlayer.bio || '',
-  wins: rawPlayer.wins,
 };
+
+const { count: wins } = await supabase
+  .from('game_results')
+  .select('*', { count: 'exact', head: true })
+  .eq('place', 1)
+  .eq('player_id', rawPlayer.id);
 
 const seasonsMap: Record<number, typeof rawResults> = {};
 rawResults.forEach((r: any) => {
@@ -159,11 +163,18 @@ const statsMap: Record<string, KOStat> = {};
             <span class={styles.statLabel}>Seasons played</span>
           </div>
           <div class={styles.statItem}>
-            <span class={styles.statNumber}>{Object.values(seasonsMap).reduce((sum, arr) => sum + arr.length, 0)}</span>
+            <span class={styles.statNumber}
+              >{
+                Object.values(seasonsMap).reduce(
+                  (sum, arr) => sum + arr.length,
+                  0,
+                )
+              }</span
+            >
             <span class={styles.statLabel}>Games played</span>
           </div>
           <div class={styles.statItem}>
-            <span class={styles.statNumber}>{player.wins}</span>
+            <span class={styles.statNumber}>{wins}</span>
             <span class={styles.statLabel}>Wins</span>
           </div>
         </div>
