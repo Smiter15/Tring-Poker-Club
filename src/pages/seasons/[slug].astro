@@ -89,7 +89,7 @@ if (resultsError || !rawResults) {
 
 const { data: allGameResults, error: allResultsError } = await supabase
   .from('game_results')
-  .select('player_id, place')
+  .select('player_id, place, game_id')
   .eq('season_id', seasonId);
 
 if (allResultsError) {
@@ -97,14 +97,20 @@ if (allResultsError) {
   throw new Error('Game results not found');
 }
 
-// Build a map: player_id → concatenated emojis
+const maxPlaceByGame: Record<number, number> = {};
+allGameResults.forEach(({ game_id, place }) => {
+  maxPlaceByGame[game_id] = Math.max(maxPlaceByGame[game_id] || 0, place);
+});
+
 const emojisByPlayerId: Record<number, string> = {};
-allGameResults.forEach(({ player_id, place }) => {
+allGameResults.forEach(({ player_id, place, game_id }) => {
   if (!emojisByPlayerId[player_id]) emojisByPlayerId[player_id] = '';
   if (place === 1) emojisByPlayerId[player_id] += '🥇';
   else if (place === 2) emojisByPlayerId[player_id] += '🥈';
   else if (place === 3) emojisByPlayerId[player_id] += '🥉';
   else if (place === 4) emojisByPlayerId[player_id] += '🫧';
+  else if (place === maxPlaceByGame[game_id])
+    emojisByPlayerId[player_id] += '💩';
 });
 
 const formatDate = (iso: string) => {
@@ -128,7 +134,6 @@ const games = rawGames.map((g: any) => ({
   winnerImage: g.winner?.image_url ?? '',
 }));
 
-// ─── Build tableData with gamesPlayed count ─────────────────────────────────
 const tableData = await Promise.all(
   rawResults.map(async (r: any) => {
     const playerId = r.player.id;

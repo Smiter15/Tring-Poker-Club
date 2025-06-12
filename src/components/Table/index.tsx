@@ -36,7 +36,15 @@ export default function Table({ data, showEmojis = false }: TableProps) {
 
   const hasNavigate = data.some((row) => typeof row.navigate === 'string');
   const headers = Object.keys(data[0]).filter(
-    (h) => !['navigate', 'playerSlug', 'playerImage', 'emojis'].includes(h),
+    (h) =>
+      ![
+        'navigate',
+        'playerSlug',
+        'playerImage',
+        'emojis',
+        'placeNum',
+        'totalPlayers',
+      ].includes(h),
   );
 
   const [sortField, setSortField] = useState<string | null>(null);
@@ -74,7 +82,7 @@ export default function Table({ data, showEmojis = false }: TableProps) {
     }
   };
 
-  // Emoji map for top 4 positions
+  // Emoji map for top positions
   const emojiMap: Record<string, string> = {
     '1st': '🥇',
     '2nd': '🥈',
@@ -138,7 +146,21 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                     : null;
 
                 const placeValue = row.place || row.position;
-                const medalEmoji = showEmojis ? emojiMap[placeValue] || '' : '';
+                const placeNum =
+                  typeof row.placeNum === 'number'
+                    ? row.placeNum
+                    : parseInt(String(placeValue), 10) || 0;
+                const totalPlayers = row.totalPlayers || 0;
+
+                // decide which emoji to show
+                let medalEmoji = '';
+                if (showEmojis) {
+                  if (emojiMap[placeValue]) {
+                    medalEmoji = emojiMap[placeValue];
+                  } else if (totalPlayers > 0 && placeNum === totalPlayers) {
+                    medalEmoji = '💩';
+                  }
+                }
 
                 return (
                   <motion.tr
@@ -157,31 +179,32 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                       if (header === 'place' || header === 'position') {
                         return (
                           <td key={header} className={styles.placeCell}>
-                            <div
-                              style={{
-                                position: 'relative',
-                                ...(placeValue === '1st'
-                                  ? { color: '#dfbc00', fontWeight: 'bold' }
-                                  : placeValue === '2nd'
-                                    ? { color: '#aeacac', fontWeight: 'bold' }
-                                    : placeValue === '3rd'
-                                      ? { color: '#CD7F32', fontWeight: 'bold' }
-                                      : { color: '#757575' }),
-                              }}
-                            >
-                              {placeValue}
+                            <div className={styles.placeCellInner}>
+                              <div
+                                style={{
+                                  width: 30,
+                                  ...(placeValue === '1st'
+                                    ? {
+                                        color: '#dfbc00',
+                                        fontWeight: 'bold',
+                                      }
+                                    : placeValue === '2nd'
+                                      ? {
+                                          color: '#aeacac',
+                                          fontWeight: 'bold',
+                                        }
+                                      : placeValue === '3rd'
+                                        ? {
+                                            color: '#CD7F32',
+                                            fontWeight: 'bold',
+                                          }
+                                        : { color: '#757575' }),
+                                }}
+                              >
+                                {placeValue}
+                              </div>
                               {medalEmoji && (
-                                <div
-                                  style={{
-                                    position: 'absolute',
-                                    fontSize: 16,
-                                    top: -6,
-                                    left: 26,
-                                  }}
-                                >
-                                  {' '}
-                                  {medalEmoji}
-                                </div>
+                                <div className={styles.emoji}>{medalEmoji}</div>
                               )}
                             </div>
                           </td>
@@ -237,6 +260,7 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                           </td>
                         );
                       }
+
                       return <td key={header}>{row[header]}</td>;
                     })}
 

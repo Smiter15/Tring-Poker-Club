@@ -42,6 +42,7 @@ if (playerError || !rawPlayer) {
   throw new Error('Player not found');
 }
 
+// ─── fetch this player’s results, including the game ID ─────────────────
 const { data: rawResults, error: resultsError } = await supabase
   .from('game_results')
   .select(
@@ -49,6 +50,7 @@ const { data: rawResults, error: resultsError } = await supabase
     place,
     points,
     game:games!game_results_game_id_fkey(
+      id,
       slug,
       season_id,
       season_game,
@@ -62,6 +64,25 @@ if (resultsError || !rawResults) {
   console.error('❌ Could not load game results:', resultsError);
   throw new Error('Game results not found');
 }
+
+// ─── now fetch ALL rows for those same games, so we can count participants ──
+const gameIds = rawResults.map((r: any) => r.game.id);
+const { data: allResultsForGames, error: countError } = await supabase
+  .from('game_results')
+  .select('game_id')
+  .in('game_id', gameIds);
+
+if (countError || !allResultsForGames) {
+  console.error('❌ Could not load participant counts:', countError);
+  throw new Error('Counts not found');
+}
+
+const countsByGame: Record<number, number> = {};
+allResultsForGames.forEach((r: any) => {
+  countsByGame[r.game_id] = (countsByGame[r.game_id] || 0) + 1;
+});
+
+// ─── rest of your player page setup ───────────────────────────────────────
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
@@ -85,17 +106,17 @@ const { count: wins } = await supabase
   .eq('place', 1)
   .eq('player_id', rawPlayer.id);
 
+// group by season
 const seasonsMap: Record<number, typeof rawResults> = {};
 rawResults.forEach((r: any) => {
   const sid = r.game.season_id;
   (seasonsMap[sid] ||= []).push(r);
 });
-
 const seasonNumbers = Object.keys(seasonsMap)
   .map(Number)
   .sort((a, b) => a - b);
 
-// ─── Fetch KOs where this player is killer or victim ───
+// ─── KOs block unchanged ─────────────────────────────────────────────────
 const { data: rawKOs, error: koError } = await supabase
   .from('game_knockouts')
   .select(
@@ -123,16 +144,12 @@ const { data: rawKOs, error: koError } = await supabase
 if (koError) {
   console.error('❌ Could not load knockouts:', koError);
 }
-
-// Build per-opponent kill/death tallies
 type KOStat = { kills: number; deaths: number };
 const statsMap: Record<string, KOStat> = {};
-
 (rawKOs ?? []).forEach((k: any) => {
   const amKiller = k.killer_id === rawPlayer.id;
   const other = amKiller ? k.victim! : k.killer!;
   const name = other.prefer_nickname ? other.nickname : other.first_name;
-
   if (!statsMap[name]) statsMap[name] = { kills: 0, deaths: 0 };
   if (amKiller) statsMap[name].kills++;
   else statsMap[name].deaths++;
@@ -155,7 +172,7 @@ const statsMap: Record<string, KOStat> = {};
         <h1 class={styles.name}>
           {player.firstName}
           {player.nickname ? ` “${player.nickname}”` : ''}
-          {' '}{player.lastName}
+          {player.lastName}
         </h1>
         <div class={styles.stats}>
           <div class={styles.statItem}>
@@ -163,14 +180,14 @@ const statsMap: Record<string, KOStat> = {};
             <span class={styles.statLabel}>Seasons</span>
           </div>
           <div class={styles.statItem}>
-            <span class={styles.statNumber}
-              >{
+            <span class={styles.statNumber}>
+              {
                 Object.values(seasonsMap).reduce(
                   (sum, arr) => sum + arr.length,
                   0,
                 )
-              }</span
-            >
+              }
+            </span>
             <span class={styles.statLabel}>Games</span>
           </div>
           <div class={styles.statItem}>
@@ -189,13 +206,20 @@ const statsMap: Record<string, KOStat> = {};
           .slice()
           .sort((a: any, b: any) => a.game.season_game - b.game.season_game);
 
-        const tableData = games.map((r: any) => ({
-          game: r.game.season_game,
-          date: formatDate(r.game.played_on),
-          position: getOrdinal(r.place),
-          points: r.points,
-          navigate: `/games/${r.game.slug}`,
-        }));
+        // ─── include totalPlayers for each game ───────────────────────────
+        const tableData = games.map((r: any) => {
+          const totalPlayers = countsByGame[r.game.id] || 0;
+          return {
+            game: r.game.season_game,
+            date: formatDate(r.game.played_on),
+            position: getOrdinal(r.place),
+            // expose the raw numeric place too, if your <Table> wants it:
+            placeNum: r.place,
+            totalPlayers,
+            points: r.points,
+            navigate: `/games/${r.game.slug}`,
+          };
+        });
 
         return (
           <section>

@@ -56,6 +56,16 @@
   align-items: center;
 }
 
+.placeCellInner {
+  display: flex;
+  align-items: center;
+}
+
+.emoji {
+  margin-top: -2px;
+  font-size: 16px;
+}
+
 .crownIcon {
   position: absolute;
   transform: rotate(-10deg);
