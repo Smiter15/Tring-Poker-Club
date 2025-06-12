@@ -206,7 +206,7 @@ const knockoutTableData = Object.values(grouped).map(
     </div>
 
     <h2>Results</h2>
-    <Table client:load data={tableData} />
+    <Table client:load data={tableData} showEmojis={true} />
 
     {
       events.length > 0 && (

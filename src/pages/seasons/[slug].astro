@@ -87,6 +87,26 @@ if (resultsError || !rawResults) {
   throw new Error('Season results not found');
 }
 
+const { data: allGameResults, error: allResultsError } = await supabase
+  .from('game_results')
+  .select('player_id, place')
+  .eq('season_id', seasonId);
+
+if (allResultsError) {
+  console.error('❌ Could not load game results:', allResultsError);
+  throw new Error('Game results not found');
+}
+
+// Build a map: player_id → concatenated emojis
+const emojisByPlayerId: Record<number, string> = {};
+allGameResults.forEach(({ player_id, place }) => {
+  if (!emojisByPlayerId[player_id]) emojisByPlayerId[player_id] = '';
+  if (place === 1) emojisByPlayerId[player_id] += '🥇';
+  else if (place === 2) emojisByPlayerId[player_id] += '🥈';
+  else if (place === 3) emojisByPlayerId[player_id] += '🥉';
+  else if (place === 4) emojisByPlayerId[player_id] += '🫧';
+});
+
 const formatDate = (iso: string) => {
   const d = new Date(iso);
   const dd = String(d.getDate()).padStart(2, '0');
@@ -123,8 +143,9 @@ const tableData = await Promise.all(
       name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
       playerSlug: r.player.slug,
       playerImage: r.player.image_url,
-      gamesPlayed: gamesPlayed || 0,
+      games: gamesPlayed || 0,
       points: r.points,
+      emojis: emojisByPlayerId[playerId] || '',
     };
   }),
 );

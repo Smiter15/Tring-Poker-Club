@@ -42,7 +42,7 @@ const tableData = await Promise.all(
       name: `${p.first_name}${p.nickname ? ` "${p.nickname}"` : ''} ${p.last_name}`,
       playerImage: p.image_url,
       playerSlug: p.slug,
-      gamesPlayed,
+      games: gamesPlayed,
       wins,
       navigate: `/players/${p.slug}`,
     };

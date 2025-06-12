@@ -15,6 +15,7 @@ import type { MouseEvent } from 'react';
 
 type TableProps = {
   data: Record<string, any>[];
+  showEmojis?: boolean;
 };
 
 type SortDir = 'asc' | 'desc' | null;
@@ -30,12 +31,12 @@ const formatHeader = (header: string) => {
     .join(' ');
 };
 
-export default function Table({ data }: TableProps) {
+export default function Table({ data, showEmojis = false }: TableProps) {
   if (!data.length) return null;
 
   const hasNavigate = data.some((row) => typeof row.navigate === 'string');
   const headers = Object.keys(data[0]).filter(
-    (h) => h !== 'navigate' && h !== 'playerSlug' && h !== 'playerImage',
+    (h) => !['navigate', 'playerSlug', 'playerImage', 'emojis'].includes(h),
   );
 
   const [sortField, setSortField] = useState<string | null>(null);
@@ -73,6 +74,14 @@ export default function Table({ data }: TableProps) {
     }
   };
 
+  // Emoji map for top 4 positions
+  const emojiMap: Record<string, string> = {
+    '1st': '🥇',
+    '2nd': '🥈',
+    '3rd': '🥉',
+    '4th': '🫧',
+  };
+
   return (
     <div className={styles.tableContainer}>
       <LayoutGroup>
@@ -80,11 +89,10 @@ export default function Table({ data }: TableProps) {
           <thead>
             <tr>
               {headers.map((field) => {
-                const fullText = formatHeader(field); // e.g. "Number Of Players" or "Date"
+                const fullText = formatHeader(field);
                 const isNumberOf = fullText
                   .toLowerCase()
                   .startsWith('number of ');
-                // if it’s a “Number Of …” header, change to “No. …”, otherwise just repeat the full text
                 const shortText = isNumberOf
                   ? 'No. ' + fullText.slice('Number Of '.length)
                   : fullText;
@@ -96,11 +104,8 @@ export default function Table({ data }: TableProps) {
                     onClick={onHeaderClick(field)}
                   >
                     <div>
-                      {/* desktop: show this */}
                       <span className={styles.longLabel}>{fullText}</span>
-                      {/* mobile: show this (falls back to fullText when not a Number Of…) */}
                       <span className={styles.shortLabel}>{shortText}</span>
-
                       <FontAwesomeIcon
                         icon={
                           sortField === field
@@ -132,6 +137,9 @@ export default function Table({ data }: TableProps) {
                     ? row.navigate
                     : null;
 
+                const placeValue = row.place || row.position;
+                const medalEmoji = showEmojis ? emojiMap[placeValue] || '' : '';
+
                 return (
                   <motion.tr
                     key={nav ?? i}
@@ -149,21 +157,33 @@ export default function Table({ data }: TableProps) {
                       if (header === 'place' || header === 'position') {
                         return (
                           <td key={header} className={styles.placeCell}>
-                            <span
-                              style={
-                                row.place === '1st' || row.position === '1st'
+                            <div
+                              style={{
+                                position: 'relative',
+                                ...(placeValue === '1st'
                                   ? { color: '#dfbc00', fontWeight: 'bold' }
-                                  : row.place === '2nd' ||
-                                      row.position === '2nd'
+                                  : placeValue === '2nd'
                                     ? { color: '#aeacac', fontWeight: 'bold' }
-                                    : row.place === '3rd' ||
-                                        row.position === '3rd'
+                                    : placeValue === '3rd'
                                       ? { color: '#CD7F32', fontWeight: 'bold' }
-                                      : { color: '#757575' }
-                              }
+                                      : { color: '#757575' }),
+                              }}
                             >
-                              {row.place || row.position}
-                            </span>
+                              {placeValue}
+                              {medalEmoji && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    fontSize: 16,
+                                    top: -6,
+                                    left: 26,
+                                  }}
+                                >
+                                  {' '}
+                                  {medalEmoji}
+                                </div>
+                              )}
+                            </div>
                           </td>
                         );
                       }
@@ -203,9 +223,16 @@ export default function Table({ data }: TableProps) {
                                   />
                                 )}
                               </a>
-                              <a className={styles.link} href={playerPath}>
-                                {playerName}
-                              </a>
+                              <div>
+                                <a className={styles.link} href={playerPath}>
+                                  {playerName}
+                                </a>
+                                {row.emojis && (
+                                  <div className={styles.emojiContainer}>
+                                    {row.emojis}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                         );

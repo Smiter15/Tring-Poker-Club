@@ -200,7 +200,7 @@ const statsMap: Record<string, KOStat> = {};
         return (
           <section>
             <h3 style={{ marginTop: '30px' }}>Season {seasonId}</h3>
-            <Table client:load data={tableData} />
+            <Table client:load data={tableData} showEmojis={true} />
           </section>
         );
       })
