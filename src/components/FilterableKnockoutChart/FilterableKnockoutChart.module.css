@@ -1,8 +1,14 @@
 /* desktop: right‐aligned, inline */
 .controls {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin: 1rem 0;
+}
+
+.description {
+  margin: 0;
+  font-size: 14px;
 }
 
 /* mobile: full width, below the title */
@@ -16,5 +22,10 @@
   .controls label {
     display: block;
     width: 100%;
+  }
+
+  .description {
+    margin: 0.5rem 0;
+    font-size: 14px;
   }
 }

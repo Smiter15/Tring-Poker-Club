@@ -51,6 +51,9 @@ export default function FilterableKnockoutChart({ rawKOs, playerId }: Props) {
   return (
     <>
       <div className={styles.controls}>
+        <p className={styles.description}>
+          * Knockout data collected from season 4
+        </p>
         <label>
           Season:&nbsp;
           <select value={season} onChange={(e) => setSeason(e.target.value)}>
