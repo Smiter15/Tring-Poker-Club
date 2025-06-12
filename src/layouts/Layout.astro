@@ -9,7 +9,7 @@ import styles from './Layout.module.css';
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/images/TPC-logo-round.png" />
     <meta name="generator" content={Astro.generator} />
     <title>Tring Poker Club | {title}</title>
   </head>
@@ -17,6 +17,11 @@ import styles from './Layout.module.css';
     <header class={styles.header}>
       <div class={styles.headerContent}>
         <div class={styles.logo}>
+          <img
+            src="/images/TPC-logo.jpeg"
+            alt="Tring Poker Club Logo"
+            class={styles.logoImage}
+          />
           <a href="/" class={styles.logoLink}>Tring Poker Club</a>
         </div>
 
