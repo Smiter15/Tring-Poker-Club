@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion, LayoutGroup } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChevronRight,
@@ -101,9 +101,12 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                 const isNumberOf = fullText
                   .toLowerCase()
                   .startsWith('number of ');
-                const shortText = isNumberOf
+                let shortText = isNumberOf
                   ? 'No. ' + fullText.slice('Number Of '.length)
                   : fullText;
+
+                if (field === 'points') shortText = 'Pts';
+                if (field === 'avgPoints') shortText = 'Avg Pts';
 
                 return (
                   <th
@@ -138,144 +141,129 @@ export default function Table({ data, showEmojis = false }: TableProps) {
           </thead>
 
           <motion.tbody layout>
-            <AnimatePresence>
-              {sortedData.map((row, i) => {
-                const nav =
-                  hasNavigate && typeof row.navigate === 'string'
-                    ? row.navigate
-                    : null;
+            {sortedData.map((row) => {
+              const nav =
+                hasNavigate && typeof row.navigate === 'string'
+                  ? row.navigate
+                  : null;
+              const key = row.id ?? row.slug ?? row.playerSlug;
 
-                const placeValue = row.place || row.position;
-                const placeNum =
-                  typeof row.placeNum === 'number'
-                    ? row.placeNum
-                    : parseInt(String(placeValue), 10) || 0;
-                const totalPlayers = row.totalPlayers || 0;
+              const placeValue = row.place || row.position;
+              const placeNum =
+                typeof row.placeNum === 'number'
+                  ? row.placeNum
+                  : parseInt(String(placeValue), 10) || 0;
+              const totalPlayers = row.totalPlayers || 0;
 
-                // decide which emoji to show
-                let medalEmoji = '';
-                if (showEmojis) {
-                  if (emojiMap[placeValue]) {
-                    medalEmoji = emojiMap[placeValue];
-                  } else if (totalPlayers > 0 && placeNum === totalPlayers) {
-                    medalEmoji = '💩';
-                  }
-                }
+              let medalEmoji = '';
+              if (showEmojis) {
+                if (emojiMap[placeValue]) medalEmoji = emojiMap[placeValue];
+                else if (totalPlayers > 0 && placeNum === totalPlayers)
+                  medalEmoji = '💩';
+              }
 
-                return (
-                  <motion.tr
-                    key={nav ?? i}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className={nav ? styles.clickableRow : undefined}
-                    onClick={
-                      nav ? () => (window.location.href = nav) : undefined
+              return (
+                <motion.tr
+                  key={key}
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className={nav ? styles.clickableRow : undefined}
+                  onClick={nav ? () => (window.location.href = nav) : undefined}
+                >
+                  {headers.map((header) => {
+                    if (header === 'place' || header === 'position') {
+                      return (
+                        <td key={header} className={styles.placeCell}>
+                          <div className={styles.placeCellInner}>
+                            <div
+                              style={{
+                                width: 30,
+                                ...(placeValue === '1st'
+                                  ? { color: '#dfbc00', fontWeight: 'bold' }
+                                  : placeValue === '2nd'
+                                    ? { color: '#aeacac', fontWeight: 'bold' }
+                                    : placeValue === '3rd'
+                                      ? { color: '#CD7F32', fontWeight: 'bold' }
+                                      : { color: '#757575' }),
+                              }}
+                            >
+                              {placeValue}
+                            </div>
+                            {medalEmoji && (
+                              <div className={styles.emoji}>{medalEmoji}</div>
+                            )}
+                          </div>
+                        </td>
+                      );
                     }
-                  >
-                    {headers.map((header) => {
-                      if (header === 'place' || header === 'position') {
-                        return (
-                          <td key={header} className={styles.placeCell}>
-                            <div className={styles.placeCellInner}>
-                              <div
-                                style={{
-                                  width: 30,
-                                  ...(placeValue === '1st'
-                                    ? {
-                                        color: '#dfbc00',
-                                        fontWeight: 'bold',
-                                      }
-                                    : placeValue === '2nd'
-                                      ? {
-                                          color: '#aeacac',
-                                          fontWeight: 'bold',
-                                        }
-                                      : placeValue === '3rd'
-                                        ? {
-                                            color: '#CD7F32',
-                                            fontWeight: 'bold',
-                                          }
-                                        : { color: '#757575' }),
-                                }}
-                              >
-                                {placeValue}
-                              </div>
-                              {medalEmoji && (
-                                <div className={styles.emoji}>{medalEmoji}</div>
+
+                    if (['winner', 'leader', 'name'].includes(header)) {
+                      const playerName = row.winner || row.leader || row.name;
+                      const playerPath = `/players/${row.playerSlug}`;
+
+                      return (
+                        <td key={header}>
+                          <div className={styles.playerCellInner}>
+                            <a
+                              href={playerPath}
+                              style={{
+                                all: 'unset',
+                                cursor: 'pointer',
+                                position: 'relative',
+                              }}
+                            >
+                              {row.place === '1st' && (
+                                <FontAwesomeIcon
+                                  icon={faCrown}
+                                  className={styles.crownIcon}
+                                  color="#FFD700"
+                                />
+                              )}
+                              {row.playerImage ? (
+                                <img
+                                  src={row.playerImage}
+                                  alt={playerName}
+                                  className={styles.playerImage}
+                                />
+                              ) : (
+                                <FontAwesomeIcon
+                                  icon={faUserCircle}
+                                  className={styles.avatarIcon}
+                                />
+                              )}
+                            </a>
+                            <div>
+                              <a className={styles.link} href={playerPath}>
+                                {playerName}
+                              </a>
+                              {row.emojis && (
+                                <div className={styles.emojiContainer}>
+                                  {row.emojis}
+                                </div>
                               )}
                             </div>
-                          </td>
-                        );
-                      }
+                          </div>
+                        </td>
+                      );
+                    }
 
-                      if (['winner', 'leader', 'name'].includes(header)) {
-                        const playerName = row.winner || row.leader || row.name;
-                        const playerPath = `/players/${row.playerSlug}`;
+                    return <td key={header}>{row[header]}</td>;
+                  })}
 
-                        return (
-                          <td key={header}>
-                            <div className={styles.playerCellInner}>
-                              <a
-                                href={playerPath}
-                                style={{
-                                  all: 'unset',
-                                  cursor: 'pointer',
-                                  position: 'relative',
-                                }}
-                              >
-                                {row.place === '1st' && (
-                                  <FontAwesomeIcon
-                                    icon={faCrown}
-                                    className={styles.crownIcon}
-                                    color="#FFD700"
-                                  />
-                                )}
-                                {row.playerImage ? (
-                                  <img
-                                    src={row.playerImage}
-                                    alt={playerName}
-                                    className={styles.playerImage}
-                                  />
-                                ) : (
-                                  <FontAwesomeIcon
-                                    icon={faUserCircle}
-                                    className={styles.avatarIcon}
-                                  />
-                                )}
-                              </a>
-                              <div>
-                                <a className={styles.link} href={playerPath}>
-                                  {playerName}
-                                </a>
-                                {row.emojis && (
-                                  <div className={styles.emojiContainer}>
-                                    {row.emojis}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                        );
-                      }
-
-                      return <td key={header}>{row[header]}</td>;
-                    })}
-
-                    {hasNavigate && (
-                      <td className={styles.chevronCell}>
-                        <FontAwesomeIcon
-                          icon={faChevronRight}
-                          className={styles.chevron}
-                        />
-                      </td>
-                    )}
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
+                  {hasNavigate && (
+                    <td className={styles.chevronCell}>
+                      <FontAwesomeIcon
+                        icon={faChevronRight}
+                        className={styles.chevron}
+                      />
+                    </td>
+                  )}
+                </motion.tr>
+              );
+            })}
           </motion.tbody>
         </table>
       </LayoutGroup>
