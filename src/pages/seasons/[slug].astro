@@ -206,7 +206,7 @@ const datasets = lines.map((line: string) => {
     <h1>Season {season.name}</h1>
 
     <h2>{season.is_active ? 'Current standings' : 'Results'}</h2>
-    <Table client:load data={tableData} showEmojis={true} />
+    <Table client:load data={tableData} />
 
     <h2>Cumulative Points</h2>
     <SeasonLineChart client:load labels={dateLabels} datasets={datasets} />
