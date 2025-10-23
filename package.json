@@ -9,14 +9,14 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/netlify": "^6.5.11",
+    "@astrojs/netlify": "^6.6.0",
     "@astrojs/react": "^4.4.0",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@supabase/supabase-js": "^2.49.4",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
-    "astro": "^5.14.1",
+    "astro": "^5.15.1",
     "classnames": "^2.5.1",
     "framer-motion": "^12.11.4",
     "highcharts": "^12.2.0",
