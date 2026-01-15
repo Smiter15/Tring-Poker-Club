@@ -248,3 +248,125 @@
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
   pointer-events: none;
 }
+
+/* ---------- Responsive (mobile) ---------- */
+@media (max-width: 560px) {
+  .wrap {
+    max-width: 100%;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .pinnedSummary {
+    text-align: left;
+  }
+
+  .boardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  /* Hide the column header row on mobile */
+  /* Keep a compact column header row on mobile */
+  .colHeader {
+    display: grid;
+    grid-template-columns: 44px 1fr 76px 64px; /* must match .rowButton */
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  /* Hide the desktop-only header columns */
+  .colGames,
+  .colAvg {
+    display: none;
+  }
+
+  /* Make sure the remaining header labels align nicely */
+  .colRank {
+    text-align: right;
+  }
+  .colPts {
+    text-align: right;
+  }
+  .colMove {
+    text-align: right;
+  }
+
+  /* Switch rows from 6 cols -> 4 cols */
+  .rowButton {
+    grid-template-columns: 44px 1fr 76px 64px; /* rank | player | pts | move */
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
+  /* Hide games + avg columns on mobile */
+  .games,
+  .avg {
+    display: none;
+  }
+
+  /* Player cell: keep avatar + name tight */
+  .playerCell {
+    gap: 8px;
+  }
+
+  /* Make name + emojis behave nicely */
+  .name {
+    font-size: 14px;
+  }
+
+  .emojis {
+    font-size: 12px;
+    opacity: 0.9;
+    max-width: 100%;
+  }
+
+  /* Slightly tighten points/delta */
+  .points {
+    font-size: 14px;
+  }
+
+  .delta {
+    font-size: 13px;
+  }
+
+  /* Crown positioning stays OK, but tweak slightly on small screens */
+  .crownIcon {
+    top: -11px;
+    font-size: 13px;
+  }
+
+  /* Slider labels are fine, but tighten */
+  .sliderLabels {
+    font-size: 11px;
+  }
+
+  .legend {
+    font-size: 11px;
+  }
+}
+
+/* Super small phones */
+@media (max-width: 380px) {
+  .rowButton {
+    grid-template-columns: 40px 1fr 70px 56px;
+  }
+
+  .rank {
+    font-size: 13px;
+  }
+
+  .points {
+    font-size: 13px;
+  }
+
+  .delta {
+    font-size: 12px;
+  }
+}
