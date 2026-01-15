@@ -1,6 +1,7 @@
 .wrap {
   width: 100%;
   max-width: 980px;
+  -webkit-text-size-adjust: 100%;
 }
 
 .header {
@@ -75,7 +76,7 @@
   text-align: right;
 }
 
-/* NEW: column header row */
+/* Column header row */
 .colHeader {
   margin-top: 10px;
   padding: 8px 12px;
@@ -115,6 +116,7 @@
   overflow: hidden;
 }
 
+/* iOS Safari: stop default blue button text + default button styling */
 .rowButton {
   width: 100%;
   border: none;
@@ -126,6 +128,20 @@
   align-items: center;
   cursor: pointer;
   text-align: left;
+
+  color: inherit;
+  font: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rowButton:visited {
+  color: inherit;
+}
+
+.rowButton * {
+  color: inherit;
 }
 
 .rowButton:hover {
@@ -198,6 +214,7 @@
   font-weight: 800;
 }
 
+/* Re-assert delta colours AFTER rowButton * { color: inherit; } */
 .deltaUp {
   color: #1f8f3a; /* green */
   font-weight: 800;
@@ -249,6 +266,12 @@
   pointer-events: none;
 }
 
+/* Prevent iOS Safari link styling inside the component */
+.wrap a {
+  color: inherit;
+  text-decoration: none;
+}
+
 /* ---------- Responsive (mobile) ---------- */
 @media (max-width: 560px) {
   .wrap {
@@ -271,7 +294,6 @@
     gap: 6px;
   }
 
-  /* Hide the column header row on mobile */
   /* Keep a compact column header row on mobile */
   .colHeader {
     display: grid;
@@ -285,17 +307,6 @@
   .colGames,
   .colAvg {
     display: none;
-  }
-
-  /* Make sure the remaining header labels align nicely */
-  .colRank {
-    text-align: right;
-  }
-  .colPts {
-    text-align: right;
-  }
-  .colMove {
-    text-align: right;
   }
 
   /* Switch rows from 6 cols -> 4 cols */
@@ -369,14 +380,4 @@
   .delta {
     font-size: 12px;
   }
-}
-
-/* Prevent iOS Safari link styling inside the component */
-.wrap a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.wrap {
-  -webkit-text-size-adjust: 100%;
 }
