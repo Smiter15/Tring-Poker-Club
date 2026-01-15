@@ -6,6 +6,7 @@ import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 import SeasonLineChart from 'src/components/SeasonProgressLineChart';
 import SeasonLeaderboardBumpChart from 'src/components/SeasonLeaderboardBumpChart';
+import SeasonReplayLeaderboard from 'src/components/SeasonReplayLeaderboard';
 
 import styles from './_seasons.module.css';
 
@@ -186,6 +187,13 @@ const avatarByLabel = Object.fromEntries(
   tableData.map((r) => [r.name, r.playerImage]),
 );
 
+const metaByLabel = Object.fromEntries(
+  tableData.map((r) => [
+    r.name,
+    { games: r.games, avgPoints: r.avgPoints, emojis: r.emojis },
+  ]),
+);
+
 // Cumulative points chart setup
 const csvRaw = await import(`../../data/season/season-${slug}.csv?raw`);
 const lines = csvRaw.default.trim().split('\n');
@@ -212,7 +220,15 @@ const datasets = lines.map((line: string) => {
     <h1>Season {season.name}</h1>
 
     <h2>{season.is_active ? 'Current standings' : 'Results'}</h2>
-    <Table client:load data={tableData} />
+    <!-- <Table client:load data={tableData} /> -->
+
+    <!-- <h2>Replay</h2> -->
+    <SeasonReplayLeaderboard
+      client:load
+      labels={dateLabels}
+      datasets={datasets}
+      metaByLabel={metaByLabel}
+    />
 
     <h2>Leaderboard Progression</h2>
     <SeasonLeaderboardBumpChart
