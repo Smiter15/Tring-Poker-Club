@@ -370,3 +370,13 @@
     font-size: 12px;
   }
 }
+
+/* Prevent iOS Safari link styling inside the component */
+.wrap a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.wrap {
+  -webkit-text-size-adjust: 100%;
+}

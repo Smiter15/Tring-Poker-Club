@@ -110,6 +110,11 @@ export default function SeasonLeaderboardBumpChart({
     xAxis: {
       categories: labels,
       tickmarkPlacement: 'on',
+      labels: {
+        formatter: function () {
+          return `Game ${(this.pos ?? 0) + 1}`;
+        },
+      },
     },
 
     yAxis: {
