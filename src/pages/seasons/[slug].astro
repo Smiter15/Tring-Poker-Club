@@ -5,6 +5,7 @@ import { getOrdinal } from 'src/utils';
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 import SeasonLineChart from 'src/components/SeasonProgressLineChart';
+import SeasonLeaderboardBumpChart from 'src/components/SeasonLeaderboardBumpChart';
 
 import styles from './_seasons.module.css';
 
@@ -181,6 +182,10 @@ const gamesTableData = games.map((g) => ({
   navigate: `/games/${g.slug}`,
 }));
 
+const avatarByLabel = Object.fromEntries(
+  tableData.map((r) => [r.name, r.playerImage]),
+);
+
 // Cumulative points chart setup
 const csvRaw = await import(`../../data/season/season-${slug}.csv?raw`);
 const lines = csvRaw.default.trim().split('\n');
@@ -197,7 +202,8 @@ const datasets = lines.map((line: string) => {
     cumul[i] = next;
     return next;
   }, 0);
-  return { label: player, data: cumul };
+
+  return { label: player, data: cumul, avatarUrl: avatarByLabel[player] };
 });
 ---
 
@@ -207,6 +213,14 @@ const datasets = lines.map((line: string) => {
 
     <h2>{season.is_active ? 'Current standings' : 'Results'}</h2>
     <Table client:load data={tableData} />
+
+    <h2>Leaderboard Progression</h2>
+    <SeasonLeaderboardBumpChart
+      client:load
+      labels={dateLabels}
+      datasets={datasets}
+      avatarByLabel={avatarByLabel}
+    />
 
     <h2>Cumulative Points</h2>
     <SeasonLineChart client:load labels={dateLabels} datasets={datasets} />

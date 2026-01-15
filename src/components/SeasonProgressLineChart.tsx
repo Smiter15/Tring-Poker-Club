@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as Highcharts from 'highcharts';
 import { HighchartsReact } from 'highcharts-react-official';
 
 export interface SeasonLineChartProps {
   labels: string[];
-  datasets: { label: string; data: number[] }[];
+  datasets: { label: string; data: number[]; avatarUrl?: string }[];
 }
 
 export default function SeasonLineChart({
@@ -19,6 +19,14 @@ export default function SeasonLineChart({
       .catch((err) => console.error('Error loading Highcharts theme:', err));
   }, []);
 
+  const avatarByLabel = useMemo(() => {
+    const map: Record<string, string> = {};
+    datasets.forEach((d) => {
+      if (d.avatarUrl) map[d.label] = d.avatarUrl;
+    });
+    return map;
+  }, [datasets]);
+
   if (!themeReady) return null;
 
   const series: Highcharts.SeriesSplineOptions[] = datasets.map((ds) => ({
@@ -28,7 +36,9 @@ export default function SeasonLineChart({
     marker: { enabled: false },
     lineWidth: 2,
     pointPlacement: 'on',
-  }));
+    // store avatar on the series options so legend/tooltip can access it
+    custom: { avatarUrl: ds.avatarUrl },
+  })) as any;
 
   const options: Highcharts.Options = {
     chart: {
@@ -55,6 +65,15 @@ export default function SeasonLineChart({
       align: 'center',
       verticalAlign: 'bottom',
       layout: 'horizontal',
+      useHTML: true,
+      labelFormatter: function () {
+        const s: any = this as any;
+        const avatar = s?.options?.custom?.avatarUrl || avatarByLabel[s.name];
+        const img = avatar
+          ? `<img src="${avatar}" alt="" style="width:18px;height:18px;border-radius:999px;vertical-align:middle;margin-right:8px" />`
+          : '';
+        return `${img}${s.name}`;
+      },
     },
     tooltip: {
       shared: true,
@@ -67,8 +86,16 @@ export default function SeasonLineChart({
         let s = `<div style="margin-bottom:4px"><b>Game ${this.x + 1}</b><br />${this.category}</div><table>`;
 
         pts.forEach((p: any) => {
+          const avatar =
+            p.series?.options?.custom?.avatarUrl ||
+            avatarByLabel[p.series.name];
+          const img = avatar
+            ? `<img src="${avatar}" alt="" style="width:18px;height:18px;border-radius:999px;vertical-align:middle;margin-right:8px" />`
+            : '';
+
           s +=
             `<tr>` +
+            `<td style="padding-right:6px">${img}</td>` +
             `<td style="color:${p.series.color};padding-right:4px">\u25CF</td>` +
             `<td>${p.series.name}:</td>` +
             `<td style="padding-left:4px"><b>${p.y}</b></td>` +
