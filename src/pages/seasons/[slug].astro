@@ -130,7 +130,7 @@ const formatDate = (iso: string) => {
   return `${dd}/${mm}/${yy}`;
 };
 
-// Map rawGames into display‐friendly shape
+// Map rawGames into display-friendly shape
 const games = rawGames.map((g: any) => ({
   id: g.id,
   slug: g.slug,
@@ -161,6 +161,7 @@ const tableData = await Promise.all(
 
     return {
       place: getOrdinal(r.place),
+      placeNum: r.place, // ✅ NEW: numeric place from season_results (tie-aware)
       name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
       playerSlug: r.player.slug,
       playerImage: r.player.image_url,
@@ -194,6 +195,11 @@ const metaByLabel = Object.fromEntries(
   ]),
 );
 
+// ✅ NEW: tie-aware final place map (1,2,2,4 etc)
+const placeByLabel = Object.fromEntries(
+  tableData.map((r) => [r.name, r.placeNum]),
+);
+
 // Cumulative points chart setup
 const csvRaw = await import(`../../data/season/season-${slug}.csv?raw`);
 const lines = csvRaw.default.trim().split('\n');
@@ -220,14 +226,13 @@ const datasets = lines.map((line: string) => {
     <h1>Season {season.name}</h1>
 
     <h2>{season.is_active ? 'Current standings' : 'Results'}</h2>
-    <!-- <Table client:load data={tableData} /> -->
 
-    <!-- <h2>Replay</h2> -->
     <SeasonReplayLeaderboard
       client:load
       labels={dateLabels}
       datasets={datasets}
       metaByLabel={metaByLabel}
+      placeByLabel={placeByLabel}
     />
 
     <h2>Leaderboard Progression</h2>

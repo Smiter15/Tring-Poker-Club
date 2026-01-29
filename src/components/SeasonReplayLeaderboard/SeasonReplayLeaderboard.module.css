@@ -195,9 +195,11 @@
   font-size: 12px;
   letter-spacing: 1px;
   opacity: 0.85;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+  line-height: 1.2;
 }
 
 .games,
@@ -292,40 +294,72 @@
     gap: 6px;
   }
 
-  /* Keep a compact column header row on mobile */
+  /* Mobile layout: rank | player | games | avg | pts | move */
   .colHeader {
     display: grid;
-    grid-template-columns: 44px 1fr 76px 64px; /* must match .rowButton */
+    grid-template-columns: 40px 1fr 44px 52px 58px 54px; /* must match .rowButton */
     gap: 8px;
     padding: 8px 10px;
     border-radius: 12px 12px 0 0;
   }
 
-  /* Hide the desktop-only header columns */
-  .colGames,
-  .colAvg {
-    display: none;
+  /* Compact header labels */
+  .colGames::after {
+    content: 'G';
+  }
+  .colAvg::after {
+    content: 'Avg';
+  }
+  .colPts::after {
+    content: 'Pts';
+  }
+  .colMove::after {
+    content: 'Δ';
   }
 
-  /* Switch rows from 6 cols -> 4 cols */
+  /* Hide the existing text in those header cells on mobile (so we can use short labels) */
+  .colGames,
+  .colAvg,
+  .colPts,
+  .colMove {
+    font-size: 0;
+  }
+
+  .colGames::after,
+  .colAvg::after,
+  .colPts::after,
+  .colMove::after {
+    font-size: 12px;
+  }
+
   .rowButton {
-    grid-template-columns: 44px 1fr 76px 64px; /* rank | player | pts | move */
-    padding: 10px 10px;
+    grid-template-columns: 20px 1fr 44px 52px 58px 54px; /* rank | player | games | avg | pts | move */
+    padding: 10px 10px 10px 4px;
     gap: 8px;
   }
 
-  /* Hide games + avg columns on mobile */
-  .games,
-  .avg {
-    display: none;
+  .rank {
+    font-size: 13px;
+    text-align: center;
   }
 
-  /* Player cell: keep avatar + name tight */
+  /* Tighten numeric columns */
+  .games,
+  .avg,
+  .points,
+  .delta {
+    font-size: 13px;
+  }
+
+  .points {
+    font-weight: 800;
+  }
+
+  /* Player cell */
   .playerCell {
     gap: 8px;
   }
 
-  /* Make name + emojis behave nicely */
   .name {
     font-size: 14px;
   }
@@ -336,22 +370,12 @@
     max-width: 100%;
   }
 
-  /* Slightly tighten points/delta */
-  .points {
-    font-size: 14px;
-  }
-
-  .delta {
-    font-size: 13px;
-  }
-
-  /* Crown positioning stays OK, but tweak slightly on small screens */
+  /* Crown tweak */
   .crownIcon {
     top: -11px;
     font-size: 13px;
   }
 
-  /* Slider labels are fine, but tighten */
   .sliderLabels {
     font-size: 11px;
   }
@@ -361,20 +385,29 @@
   }
 }
 
-/* Super small phones */
+/* Super small phones: drop emojis to keep columns readable */
 @media (max-width: 380px) {
   .rowButton {
-    grid-template-columns: 40px 1fr 70px 56px;
+    grid-template-columns: 20px 1fr 40px 48px 54px 50px;
+    gap: 6px;
   }
 
-  .rank {
+  .colHeader {
+    grid-template-columns: 38px 1fr 40px 48px 54px 50px;
+    gap: 6px;
+  }
+
+  .emojis {
+    display: none;
+  }
+
+  .name {
     font-size: 13px;
   }
 
-  .points {
-    font-size: 13px;
-  }
-
+  .games,
+  .avg,
+  .points,
   .delta {
     font-size: 12px;
   }

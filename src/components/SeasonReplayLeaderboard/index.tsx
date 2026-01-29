@@ -4,11 +4,10 @@ import { faCrown } from '@fortawesome/free-solid-svg-icons';
 import styles from './SeasonReplayLeaderboard.module.css';
 
 export interface SeasonReplayLeaderboardProps {
-  labels: string[]; // Game 1..N
+  labels: string[]; // Game 1..N (played so far)
   datasets: { label: string; data: number[]; avatarUrl?: string }[]; // cumulative points
   initialGameIndex?: number; // default last game
 
-  // NEW: extra per-player season meta (from your tableData)
   metaByLabel?: Record<
     string,
     {
@@ -17,12 +16,15 @@ export interface SeasonReplayLeaderboardProps {
       emojis?: string;
     }
   >;
+
+  // tie-aware final standings place (e.g. 1,2,2,4...)
+  placeByLabel?: Record<string, number | undefined>;
 }
 
 type Row = {
   label: string;
   points: number;
-  rank: number;
+  rank: number; // computed rank for that game (dense ranking)
   deltaRank: number; // + means moved up (better), - means moved down
   avatarUrl?: string;
 };
@@ -33,13 +35,18 @@ function ordinal(n: number) {
   return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 }
 
+const SEASON_WEEKS = 15;
+
 export default function SeasonReplayLeaderboard({
   labels,
   datasets,
   initialGameIndex,
   metaByLabel = {},
+  placeByLabel = {},
 }: SeasonReplayLeaderboardProps) {
-  const maxGameIndex = Math.max(0, labels.length - 1);
+  const playedGames = labels.length;
+  const maxGameIndex = Math.max(0, playedGames - 1);
+
   const [gameIndex, setGameIndex] = useState<number>(
     initialGameIndex ?? maxGameIndex,
   );
@@ -73,6 +80,7 @@ export default function SeasonReplayLeaderboard({
         .sort((a, b) => b.points - a.points || a.label.localeCompare(b.label));
 
       sorted.forEach((p, idx) => {
+        // dense ranking for replay; tie-aware only on final via placeByLabel
         ranksByGame[i].set(p.label, idx + 1);
       });
     }
@@ -85,7 +93,7 @@ export default function SeasonReplayLeaderboard({
       return sorted.map((p) => {
         const rank = ranksByGame[i].get(p.label)!;
         const prevRank = i > 0 ? ranksByGame[i - 1].get(p.label)! : rank;
-        const deltaRank = prevRank - rank; // + up, - down
+        const deltaRank = prevRank - rank;
 
         return {
           label: p.label,
@@ -101,17 +109,33 @@ export default function SeasonReplayLeaderboard({
   }, [datasets, labels.length]);
 
   const rows = rowsByGame[gameIndex] ?? [];
-  const pinnedRow = pinned ? rows.find((r) => r.label === pinned) : undefined;
+  const isFinalPlayedGame = gameIndex === playedGames - 1;
 
+  const pinnedRow = pinned ? rows.find((r) => r.label === pinned) : undefined;
   const pinnedMeta = pinnedRow ? metaByLabel[pinnedRow.label] : undefined;
+
+  const pinnedDisplayRank =
+    pinnedRow && isFinalPlayedGame && placeByLabel[pinnedRow.label] != null
+      ? (placeByLabel[pinnedRow.label] as number)
+      : pinnedRow?.rank;
+
+  const showSeasonHint = SEASON_WEEKS > playedGames;
 
   return (
     <div className={styles.wrap}>
       <div className={styles.header}>
         <div>
           <div className={styles.title}>Replay the season</div>
+
+          {/* Changed copy to avoid implying the season is finished */}
           <div className={styles.subTitle}>
-            Game {gameIndex + 1} of {labels.length}
+            Week {gameIndex + 1} of {SEASON_WEEKS}
+            {showSeasonHint ? (
+              <span style={{ opacity: 0.8 }}>
+                {' '}
+                · {playedGames} played so far
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -129,7 +153,8 @@ export default function SeasonReplayLeaderboard({
             </div>
 
             <div className={styles.pinnedMeta}>
-              {ordinal(pinnedRow.rank)} · {pinnedRow.points} pts
+              {pinnedDisplayRank ? ordinal(pinnedDisplayRank) : ''} ·{' '}
+              {pinnedRow.points} pts
               {typeof pinnedMeta?.games === 'number' ? (
                 <> · {pinnedMeta.games} games</>
               ) : null}
@@ -158,8 +183,8 @@ export default function SeasonReplayLeaderboard({
           onChange={(e) => setGameIndex(Number(e.target.value))}
         />
         <div className={styles.sliderLabels}>
-          <span>Game 1</span>
-          <span>Game {labels.length}</span>
+          <span>Week 1</span>
+          <span>Week {playedGames}</span>
         </div>
       </div>
 
@@ -170,7 +195,6 @@ export default function SeasonReplayLeaderboard({
         </div>
       </div>
 
-      {/* NEW: header row */}
       <div className={styles.colHeader}>
         <div className={styles.colRank}>#</div>
         <div className={styles.colPlayer}>Player</div>
@@ -185,18 +209,25 @@ export default function SeasonReplayLeaderboard({
           const isPinned = pinned === r.label;
           const meta = metaByLabel[r.label] ?? {};
 
+          const displayRank =
+            isFinalPlayedGame && placeByLabel[r.label] != null
+              ? (placeByLabel[r.label] as number)
+              : r.rank;
+
           return (
             <button
               key={r.label}
               onClick={() => setPinned(isPinned ? null : r.label)}
-              className={`${styles.rowButton} ${isPinned ? styles.rowPinned : ''}`}
+              className={`${styles.rowButton} ${
+                isPinned ? styles.rowPinned : ''
+              }`}
               type="button"
             >
-              <div className={styles.rank}>{r.rank}</div>
+              <div className={styles.rank}>{displayRank}</div>
 
               <div className={styles.playerCell}>
                 <div className={styles.avatarWrap}>
-                  {r.rank === 1 ? (
+                  {displayRank === 1 ? (
                     <FontAwesomeIcon
                       icon={faCrown}
                       className={styles.crownIcon}
@@ -246,9 +277,9 @@ export default function SeasonReplayLeaderboard({
 
       {gameIndex > 0 ? (
         <div className={styles.legend}>
-          <span className={styles.deltaUp}>▲</span> climbed places since Game{' '}
+          <span className={styles.deltaUp}>▲</span> climbed places since Week{' '}
           {gameIndex} <span className={styles.dot}>·</span>{' '}
-          <span className={styles.deltaDown}>▼</span> dropped places since Game{' '}
+          <span className={styles.deltaDown}>▼</span> dropped places since Week{' '}
           {gameIndex} <span className={styles.dot}>·</span>{' '}
           <span className={styles.deltaNeutral}>—</span> no change
         </div>
