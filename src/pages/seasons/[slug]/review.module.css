@@ -1,0 +1,298 @@
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.h1 {
+  margin: 8px 0 4px;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.subText {
+  margin: 6px 0 0;
+  opacity: 0.75;
+  font-size: 13px;
+}
+
+.section {
+  margin-top: 18px;
+}
+
+.sectionHeader {
+  margin-bottom: 10px;
+}
+
+.cardGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+.card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.cardLabel {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.cardRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-weight: 850;
+  font-size: 16px;
+}
+
+.cardName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardMeta {
+  opacity: 0.85;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cardMetaSm {
+  margin-top: 8px;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+.note {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* --- HERO overrides (fix top cards without affecting awards/rivalries) --- */
+.heroGrid .cardRow {
+  justify-content: flex-start; /* keep avatar + name together */
+}
+
+.heroGrid .cardTitle {
+  font-size: 18px; /* slightly more “hero” */
+}
+
+.heroGrid .cardMeta {
+  margin-top: 6px;
+  text-align: left; /* hero cards read better left-aligned */
+  font-size: 13px; /* smaller than awards values */
+  font-weight: 650;
+  opacity: 0.75;
+}
+
+/* Avatars */
+.avatarLg,
+.avatarMd,
+.avatarSm {
+  border-radius: 999px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.avatarLg {
+  width: 34px;
+  height: 34px;
+}
+.avatarMd {
+  width: 28px;
+  height: 28px;
+}
+.avatarSm {
+  width: 22px;
+  height: 22px;
+}
+
+.avatarLgPlaceholder,
+.avatarMdPlaceholder,
+.avatarSmPlaceholder {
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  flex: 0 0 auto;
+}
+.avatarLgPlaceholder {
+  width: 34px;
+  height: 34px;
+}
+.avatarMdPlaceholder {
+  width: 28px;
+  height: 28px;
+}
+.avatarSmPlaceholder {
+  width: 22px;
+  height: 22px;
+}
+
+/* Podium list */
+.podiumList {
+  margin: 0;
+  padding-left: 0;
+}
+.podiumName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.podiumItem {
+  margin: 6px 0;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+.podiumName {
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.podiumPts {
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rivalry cards */
+/* Rivalry cards */
+.rivalryRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; /* left | glove | right */
+  align-items: center;
+  gap: 10px;
+}
+
+.rivalrySide {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* left aligns to the left edge */
+.rivalrySide:first-child {
+  justify-content: flex-start;
+}
+
+/* right aligns to the right edge (so glove stays centered) */
+.rivalrySide:last-child {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.rivalryName {
+  font-weight: 750;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rivalryVs {
+  opacity: 0.9;
+  font-size: 16px;
+  display: inline-block;
+  transform: scaleX(-1); /* flips 🥊 horizontally */
+}
+
+/* Medal cabinet cards */
+.medalGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+.medalCard {
+  display: block;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 12px;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.medalHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.medalNameBlock {
+  min-width: 0;
+}
+
+.medalName {
+  font-weight: 850;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.medalPlace {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.medalCounts {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.medalChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.04);
+  font-size: 13px;
+}
+
+.medalChip b {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Wider screens */
+@media (min-width: 700px) {
+  .h1 {
+    font-size: 34px;
+  }
+
+  .cardGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .medalGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 980px) {
+  .medalGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

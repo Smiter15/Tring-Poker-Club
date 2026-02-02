@@ -1,0 +1,52 @@
+.wrap {
+  width: 100%;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.button {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.meta {
+  text-align: right;
+}
+
+.gameLabel {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.small {
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+.slider {
+  width: 100%;
+  margin: 6px 0 10px;
+}
+
+.chartScroll {
+  width: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+}

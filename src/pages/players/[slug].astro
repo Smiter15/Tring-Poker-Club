@@ -6,6 +6,9 @@ import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 import FilterableKnockoutChart from '@components/FilterableKnockoutChart';
 
+// NEW
+import PlayerSeasonCard from 'src/components/PlayerSeasonCard';
+
 import styles from './_players.module.css';
 
 export async function getStaticPaths() {
@@ -22,6 +25,7 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params as { slug: string };
 
+// ─── Player ─────────────────────────────────────────────────────────────
 const { data: rawPlayer, error: playerError }: any = await supabase
   .from('players')
   .select(
@@ -42,7 +46,7 @@ if (playerError || !rawPlayer) {
   throw new Error('Player not found');
 }
 
-// ─── fetch this player’s results, including the game ID ─────────────────
+// ─── This player’s game results incl game metadata ───────────────────────
 const { data: rawResults, error: resultsError } = await supabase
   .from('game_results')
   .select(
@@ -65,11 +69,12 @@ if (resultsError || !rawResults) {
   throw new Error('Game results not found');
 }
 
-// ─── now fetch ALL rows for those same games, so we can count participants ──
+// ─── fetch ALL rows for those same games, so we can count participants AND find last place ──
 const gameIds = rawResults.map((r: any) => r.game.id);
+
 const { data: allResultsForGames, error: countError } = await supabase
   .from('game_results')
-  .select('game_id')
+  .select('game_id, place')
   .in('game_id', gameIds);
 
 if (countError || !allResultsForGames) {
@@ -78,12 +83,17 @@ if (countError || !allResultsForGames) {
 }
 
 const countsByGame: Record<number, number> = {};
+const maxPlaceByGame: Record<number, number> = {};
+
 allResultsForGames.forEach((r: any) => {
-  countsByGame[r.game_id] = (countsByGame[r.game_id] || 0) + 1;
+  const gid = Number(r.game_id);
+  const place = Number(r.place);
+
+  countsByGame[gid] = (countsByGame[gid] || 0) + 1;
+  maxPlaceByGame[gid] = Math.max(maxPlaceByGame[gid] || 0, place);
 });
 
-// ─── rest of your player page setup ───────────────────────────────────────
-
+// ─── helpers / player display data ───────────────────────────────────────
 const formatDate = (iso: string) => {
   const d = new Date(iso);
   const dd = String(d.getDate()).padStart(2, '0');
@@ -100,23 +110,25 @@ const player = {
   bio: rawPlayer.bio || '',
 };
 
+// wins
 const { count: wins } = await supabase
   .from('game_results')
   .select('*', { count: 'exact', head: true })
   .eq('place', 1)
   .eq('player_id', rawPlayer.id);
 
-// group by season
+// group by season (numeric season_id)
 const seasonsMap: Record<number, typeof rawResults> = {};
 rawResults.forEach((r: any) => {
-  const sid = r.game.season_id;
+  const sid = Number(r.game.season_id);
   (seasonsMap[sid] ||= []).push(r);
 });
+
 const seasonNumbers = Object.keys(seasonsMap)
   .map(Number)
   .sort((a, b) => a - b);
 
-// ─── KOs block unchanged ─────────────────────────────────────────────────
+// ─── Knockouts (used for chart + season card rivals) ─────────────────────
 const { data: rawKOs, error: koError } = await supabase
   .from('game_knockouts')
   .select(
@@ -129,13 +141,15 @@ const { data: rawKOs, error: koError } = await supabase
       slug,
       first_name,
       nickname,
-      prefer_nickname
+      prefer_nickname,
+      image_url
     ),
     victim:players!game_knockouts_victim_id_fkey(
       slug,
       first_name,
       nickname,
-      prefer_nickname
+      prefer_nickname,
+      image_url
     )
   `,
   )
@@ -144,12 +158,174 @@ const { data: rawKOs, error: koError } = await supabase
 if (koError) {
   console.error('❌ Could not load knockouts:', koError);
 }
+
+const displayName = (p: any) =>
+  p?.prefer_nickname ? p?.nickname : p?.first_name;
+
+// ─── Season meta for dropdown + season review link ───────────────────────
+const { data: seasonsMeta } = await supabase
+  .from('seasons')
+  .select('id, name, slug')
+  .in('id', seasonNumbers);
+
+const seasonMetaById: Record<number, any> = {};
+(seasonsMeta ?? []).forEach((s: any) => (seasonMetaById[Number(s.id)] = s));
+
+// tie-aware official place/points per season for this player
+const { data: playerSeasonResults } = await supabase
+  .from('season_results')
+  .select('season_id, place, points')
+  .eq('player_id', rawPlayer.id)
+  .in('season_id', seasonNumbers);
+
+const seasonResultById: Record<number, { place: number; points: number }> = {};
+(playerSeasonResults ?? []).forEach((r: any) => {
+  seasonResultById[Number(r.season_id)] = {
+    place: Number(r.place),
+    points: Number(r.points),
+  };
+});
+
+// ─── Build stats per season for PlayerSeasonCard ─────────────────────────
+const seasonStatsById: Record<number, any> = {};
+
+seasonNumbers.forEach((sid) => {
+  const rows = seasonsMap[sid] || [];
+  const sorted = rows
+    .slice()
+    .sort(
+      (a: any, b: any) =>
+        Number(a.game.season_game) - Number(b.game.season_game),
+    );
+
+  let totalPoints = 0;
+  let gold = 0,
+    silver = 0,
+    bronze = 0,
+    bubble = 0,
+    poop = 0;
+
+  let emojiTrail = '';
+
+  sorted.forEach((r: any) => {
+    const gid = Number(r.game.id);
+    const place = Number(r.place);
+    const pts = Number(r.points) || 0;
+
+    totalPoints += pts;
+
+    if (place === 1) {
+      gold++;
+      emojiTrail += '🥇';
+    } else if (place === 2) {
+      silver++;
+      emojiTrail += '🥈';
+    } else if (place === 3) {
+      bronze++;
+      emojiTrail += '🥉';
+    } else if (place === 4) {
+      bubble++;
+      emojiTrail += '🫧';
+    } else if (place === (maxPlaceByGame[gid] ?? -1)) {
+      poop++;
+      emojiTrail += '💩';
+    }
+  });
+
+  const gamesPlayed = sorted.length;
+  const avgPoints =
+    gamesPlayed > 0 ? Number((totalPoints / gamesPlayed).toFixed(2)) : 0;
+
+  // KO stats for this season (only if KO rows exist and season_id >= 4)
+  const koForSeason = (rawKOs ?? []).filter(
+    (k: any) => Number(k.season_id) === Number(sid) && Number(sid) >= 4,
+  );
+
+  let ko: any = undefined;
+
+  if (koForSeason.length > 0) {
+    let kills = 0;
+    let deaths = 0;
+
+    const rivalsMap: Record<
+      string,
+      {
+        opponentName: string;
+        opponentSlug?: string;
+        opponentImage?: string;
+        kills: number;
+        deaths: number;
+      }
+    > = {};
+
+    koForSeason.forEach((k: any) => {
+      const amKiller = Number(k.killer_id) === Number(rawPlayer.id);
+      const other = amKiller ? k.victim : k.killer;
+      const otherName = displayName(other);
+
+      if (!otherName) return;
+
+      rivalsMap[otherName] ||= {
+        opponentName: otherName,
+        opponentSlug: other?.slug,
+        opponentImage: other?.image_url ?? undefined,
+        kills: 0,
+        deaths: 0,
+      };
+
+      if (amKiller) {
+        kills++;
+        rivalsMap[otherName].kills++;
+      } else {
+        deaths++;
+        rivalsMap[otherName].deaths++;
+      }
+    });
+
+    const rivals = Object.values(rivalsMap).sort(
+      (a, b) =>
+        b.kills + b.deaths - (a.kills + a.deaths) ||
+        b.kills - a.kills ||
+        a.opponentName.localeCompare(b.opponentName),
+    );
+
+    ko = { kills, deaths, rivals };
+  }
+
+  const sr = seasonResultById[sid];
+
+  seasonStatsById[sid] = {
+    seasonId: sid,
+    place: sr?.place,
+    points: sr?.points ?? totalPoints, // fallback
+    gamesPlayed,
+    avgPoints,
+    gold,
+    silver,
+    bronze,
+    bubble,
+    poop,
+    emojiTrail,
+    ko,
+  };
+});
+
+const seasonsForCard = seasonNumbers.map((sid) => ({
+  seasonId: sid,
+  seasonName: seasonMetaById[sid]?.name ?? String(sid),
+  seasonSlug: seasonMetaById[sid]?.slug ?? undefined,
+}));
+
+const defaultSeasonId = seasonNumbers[seasonNumbers.length - 1];
+
+// ─── KO opponent stats map (used by your existing KO chart) ──────────────
 type KOStat = { kills: number; deaths: number };
 const statsMap: Record<string, KOStat> = {};
 (rawKOs ?? []).forEach((k: any) => {
-  const amKiller = k.killer_id === rawPlayer.id;
-  const other = amKiller ? k.victim! : k.killer!;
-  const name = other.prefer_nickname ? other.nickname : other.first_name;
+  const amKiller = Number(k.killer_id) === Number(rawPlayer.id);
+  const other = amKiller ? k.victim : k.killer;
+  const name = displayName(other);
+  if (!name) return;
   if (!statsMap[name]) statsMap[name] = { kills: 0, deaths: 0 };
   if (amKiller) statsMap[name].kills++;
   else statsMap[name].deaths++;
@@ -174,6 +350,7 @@ const statsMap: Record<string, KOStat> = {};
           {player.nickname ? ` “${player.nickname}”` : ''}
           {player.lastName}
         </h1>
+
         <div class={styles.stats}>
           <div class={styles.statItem}>
             <span class={styles.statNumber}>{seasonNumbers.length}</span>
@@ -195,9 +372,18 @@ const statsMap: Record<string, KOStat> = {};
             <span class={styles.statLabel}>Wins</span>
           </div>
         </div>
+
         {player.bio && <article class={styles.bio}>{player.bio}</article>}
       </div>
     </section>
+
+    {/* NEW: Season snapshot card (most recent season played + dropdown) */}
+    <PlayerSeasonCard
+      client:load
+      seasons={seasonsForCard}
+      statsBySeasonId={seasonStatsById}
+      defaultSeasonId={defaultSeasonId}
+    />
 
     <h2>Games by Season</h2>
     {
@@ -206,14 +392,12 @@ const statsMap: Record<string, KOStat> = {};
           .slice()
           .sort((a: any, b: any) => a.game.season_game - b.game.season_game);
 
-        // ─── include totalPlayers for each game ───────────────────────────
         const tableData = games.map((r: any) => {
           const totalPlayers = countsByGame[r.game.id] || 0;
           return {
             game: r.game.season_game,
             date: formatDate(r.game.played_on),
             position: getOrdinal(r.place),
-            // expose the raw numeric place too, if your <Table> wants it:
             placeNum: r.place,
             totalPlayers,
             points: r.points,
@@ -223,7 +407,9 @@ const statsMap: Record<string, KOStat> = {};
 
         return (
           <section>
-            <h3 style={{ marginTop: '30px' }}>Season {seasonId}</h3>
+            <h3 style={{ marginTop: '30px' }}>
+              Season {seasonMetaById[seasonId]?.name ?? seasonId}
+            </h3>
             <Table client:load data={tableData} showEmojis={true} />
           </section>
         );

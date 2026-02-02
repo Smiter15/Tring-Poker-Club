@@ -1,0 +1,746 @@
+---
+import { supabase } from 'src/db/supabase';
+import Layout from '@layouts/Layout.astro';
+
+import SeasonReviewBarRace from 'src/components/SeasonReviewBarRace';
+
+import styles from './review.module.css';
+
+const SEASON_WEEKS = 15;
+
+// 1) Static paths
+export async function getStaticPaths() {
+  const { data: seasons, error } = await supabase
+    .from('seasons')
+    .select('slug');
+
+  if (error || !seasons) {
+    console.error('❌ Failed to load season slugs:', error);
+    return [];
+  }
+
+  return seasons.map((s) => ({ params: { slug: s.slug } }));
+}
+
+const { slug } = Astro.params as { slug: string };
+
+// 2) Season
+const { data: season, error: seasonError } = await supabase
+  .from('seasons')
+  .select('id, name, slug, is_active, winner_id')
+  .eq('slug', slug)
+  .single();
+
+if (seasonError || !season) {
+  console.error('❌ Could not load season:', seasonError);
+  throw new Error('Season not found');
+}
+
+const seasonId = season.id;
+
+// 3) Games
+const { data: games, error: gamesError } = await supabase
+  .from('games')
+  .select('id, slug, season_game, played_on, no_of_players, winner_id')
+  .eq('season_id', seasonId)
+  .order('season_game', { ascending: true });
+
+if (gamesError || !games) {
+  console.error('❌ Could not load games:', gamesError);
+  throw new Error('Games not found');
+}
+
+const gameIds = games.map((g) => g.id);
+const gamesPlayed = games.length;
+
+// 4) Final standings
+const { data: seasonResults, error: resultsError } = await supabase
+  .from('season_results')
+  .select(
+    `
+    place,
+    points,
+    player:players!season_results_player_id_fkey (
+      id,
+      slug,
+      first_name,
+      nickname,
+      prefer_nickname,
+      image_url
+    )
+  `,
+  )
+  .eq('season_id', seasonId)
+  .order('place', { ascending: true });
+
+if (resultsError || !seasonResults) {
+  console.error('❌ Could not load season results:', resultsError);
+  throw new Error('Season results not found');
+}
+
+const displayName = (p: any) =>
+  p?.prefer_nickname ? p?.nickname : p?.first_name;
+
+const podium = seasonResults.slice(0, 3).map((r: any) => ({
+  place: r.place,
+  points: r.points,
+  playerId: r.player.id,
+  slug: r.player.slug,
+  name: displayName(r.player),
+  image: r.player.image_url ?? undefined,
+}));
+
+const champion = podium[0];
+const gap12 =
+  podium.length >= 2 ? Math.max(0, podium[0].points - podium[1].points) : null;
+const gap23 =
+  podium.length >= 3 ? Math.max(0, podium[1].points - podium[2].points) : null;
+
+// 5) Game results (for medals, progression, participants)
+const { data: gameResults, error: gameResultsError } = await supabase
+  .from('game_results')
+  .select('game_id, player_id, place, points')
+  .eq('season_id', seasonId);
+
+if (gameResultsError || !gameResults) {
+  console.error('❌ Could not load game results:', gameResultsError);
+  throw new Error('Game results not found');
+}
+
+const participantsSet = new Set<number>();
+gameResults.forEach((gr: any) => participantsSet.add(Number(gr.player_id)));
+const participantsCount = participantsSet.size;
+
+// player map (use season_results as source of truth for names/avatars)
+const playerById: Record<number, any> = {};
+seasonResults.forEach((r: any) => {
+  playerById[Number(r.player.id)] = {
+    id: Number(r.player.id),
+    slug: r.player.slug,
+    name: displayName(r.player),
+    image: r.player.image_url ?? undefined,
+    finalPlace: r.place,
+    finalPoints: r.points,
+  };
+});
+
+// safety: if anyone appears in game_results but missing from season_results
+const missingIds = [...participantsSet].filter((id) => !playerById[id]);
+if (missingIds.length) {
+  const { data: extraPlayers } = await supabase
+    .from('players')
+    .select('id, slug, first_name, nickname, prefer_nickname, image_url')
+    .in('id', missingIds);
+
+  (extraPlayers ?? []).forEach((p: any) => {
+    playerById[Number(p.id)] = {
+      id: Number(p.id),
+      slug: p.slug,
+      name: displayName(p),
+      image: p.image_url ?? undefined,
+      finalPlace: undefined,
+      finalPoints: undefined,
+    };
+  });
+}
+
+// -------- Medals + poops ----------
+const maxPlaceByGame: Record<number, number> = {};
+gameResults.forEach((gr: any) => {
+  const gid = Number(gr.game_id);
+  const place = Number(gr.place);
+  maxPlaceByGame[gid] = Math.max(maxPlaceByGame[gid] ?? 0, place);
+});
+
+type MedalRow = {
+  playerId: number;
+  name: string;
+  slug: string;
+  image?: string;
+  gamesPlayed: number;
+  totalPoints: number;
+  avgPoints: number;
+  gold: number;
+  silver: number;
+  bronze: number;
+  bubble: number;
+  poop: number;
+};
+
+const medalsByPlayer: Record<number, MedalRow> = {};
+Object.values(playerById).forEach((p: any) => {
+  medalsByPlayer[p.id] = {
+    playerId: p.id,
+    name: p.name,
+    slug: p.slug,
+    image: p.image,
+    gamesPlayed: 0,
+    totalPoints: 0,
+    avgPoints: 0,
+    gold: 0,
+    silver: 0,
+    bronze: 0,
+    bubble: 0,
+    poop: 0,
+  };
+});
+
+gameResults.forEach((gr: any) => {
+  const pid = Number(gr.player_id);
+  const gid = Number(gr.game_id);
+  const place = Number(gr.place);
+  const pts = Number(gr.points);
+
+  const row = medalsByPlayer[pid];
+  if (!row) return;
+
+  row.gamesPlayed += 1;
+  row.totalPoints += pts;
+
+  if (place === 1) row.gold += 1;
+  else if (place === 2) row.silver += 1;
+  else if (place === 3) row.bronze += 1;
+  else if (place === 4) row.bubble += 1;
+
+  if (place === (maxPlaceByGame[gid] ?? -1)) row.poop += 1;
+});
+
+Object.values(medalsByPlayer).forEach((r) => {
+  r.avgPoints =
+    r.gamesPlayed > 0 ? Number((r.totalPoints / r.gamesPlayed).toFixed(2)) : 0;
+});
+
+const medalRows = Object.values(medalsByPlayer);
+
+// helper
+const maxBy = <T,>(arr: T[], fn: (t: T) => number) => {
+  let best: T | null = null;
+  let bestVal = -Infinity;
+  arr.forEach((x) => {
+    const v = fn(x);
+    if (v > bestVal) {
+      bestVal = v;
+      best = x;
+    }
+  });
+  return best ? { item: best, value: bestVal } : null;
+};
+
+const minBy = <T,>(arr: T[], fn: (t: T) => number) => {
+  let best: T | null = null;
+  let bestVal = Infinity;
+  arr.forEach((x) => {
+    const v = fn(x);
+    if (v < bestVal) {
+      bestVal = v;
+      best = x;
+    }
+  });
+  return best ? { item: best, value: bestVal } : null;
+};
+
+const stddev = (xs: number[]) => {
+  if (xs.length === 0) return 0;
+  const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const v = xs.reduce((acc, x) => acc + (x - mean) * (x - mean), 0) / xs.length;
+  return Math.sqrt(v);
+};
+
+// -------- Progression data for bar-race ----------
+const gamesById: Record<number, any> = {};
+games.forEach((g: any, idx: number) => {
+  gamesById[Number(g.id)] = { ...g, index: idx };
+});
+
+const numWeeks = gamesPlayed;
+
+// Per-week points arrays (0 if not played; ok for bar race cumulative)
+const pointsPerPlayerPerWeek: Record<number, number[]> = {};
+Object.keys(medalsByPlayer).forEach((pidStr) => {
+  pointsPerPlayerPerWeek[Number(pidStr)] = Array(numWeeks).fill(0);
+});
+
+// Per-week place arrays (null if not played; for climb award)
+const placePerPlayerPerWeek: Record<number, Array<number | null>> = {};
+Object.keys(medalsByPlayer).forEach((pidStr) => {
+  placePerPlayerPerWeek[Number(pidStr)] = Array(numWeeks).fill(null);
+});
+
+// Per-player list of points (only games they played; for consistency award)
+const pointsListByPlayer: Record<number, number[]> = {};
+Object.keys(medalsByPlayer).forEach((pidStr) => {
+  pointsListByPlayer[Number(pidStr)] = [];
+});
+
+gameResults.forEach((gr: any) => {
+  const pid = Number(gr.player_id);
+  const gid = Number(gr.game_id);
+  const weekIndex = gamesById[gid]?.index;
+  if (weekIndex == null) return;
+
+  if (!pointsPerPlayerPerWeek[pid])
+    pointsPerPlayerPerWeek[pid] = Array(numWeeks).fill(0);
+  if (!placePerPlayerPerWeek[pid])
+    placePerPlayerPerWeek[pid] = Array(numWeeks).fill(null);
+  if (!pointsListByPlayer[pid]) pointsListByPlayer[pid] = [];
+
+  const pts = Number(gr.points) || 0;
+  const place = Number(gr.place);
+
+  pointsPerPlayerPerWeek[pid][weekIndex] = pts;
+  placePerPlayerPerWeek[pid][weekIndex] = Number.isFinite(place) ? place : null;
+  pointsListByPlayer[pid].push(pts);
+});
+
+const raceLabels = games.map((g: any) => `Game ${g.season_game}`);
+const raceDatasets = Object.values(medalsByPlayer).map((p) => {
+  const pts = pointsPerPlayerPerWeek[p.playerId] ?? Array(numWeeks).fill(0);
+  const cumul: number[] = [];
+  pts.reduce((sum, v, i) => {
+    const next = sum + v;
+    cumul[i] = next;
+    return next;
+  }, 0);
+
+  return {
+    label: p.name,
+    data: cumul,
+    avatarUrl: p.image,
+    playerSlug: p.slug,
+  };
+});
+
+// -------- NEW AWARDS: biggest climb + most consistent ----------
+let biggestClimb: any = null;
+
+Object.keys(placePerPlayerPerWeek).forEach((pidStr) => {
+  const pid = Number(pidStr);
+  const arr = placePerPlayerPerWeek[pid] ?? [];
+  for (let i = 2; i < arr.length; i++) {
+    const prev = arr[i - 1];
+    const curr = arr[i];
+    if (prev == null || curr == null) continue; // skip if missed either week
+    const delta = prev - curr; // positive means improved
+    if (delta > 0) {
+      if (!biggestClimb || delta > biggestClimb.delta) {
+        biggestClimb = {
+          player: playerById[pid],
+          delta,
+          fromPlace: prev,
+          toPlace: curr,
+          gameNumber: i + 1, // current game (1-based)
+        };
+      }
+    }
+  }
+});
+
+// Most consistent: lowest stddev (with a sensible minimum-games threshold)
+const allConsistency = Object.keys(pointsListByPlayer).map((pidStr) => {
+  const pid = Number(pidStr);
+  const pts = pointsListByPlayer[pid] ?? [];
+  return { pid, games: pts.length, sd: stddev(pts) };
+});
+
+const pickConsistent = (minGames: number) => {
+  const eligible = allConsistency.filter((x) => x.games >= minGames);
+  if (!eligible.length) return null;
+  const best = eligible.slice().sort((a, b) => a.sd - b.sd)[0];
+  return best;
+};
+
+const mostConsistent =
+  pickConsistent(5) ?? pickConsistent(3) ?? pickConsistent(2) ?? null;
+
+// -------- Knockouts (season 4+) ----------
+const hasKnockoutsSupport = Number(seasonId) >= 4;
+
+let knockouts: any[] = [];
+if (hasKnockoutsSupport && gameIds.length) {
+  const { data: koData, error: koError } = await supabase
+    .from('game_knockouts')
+    .select('game_id, killer_id, victim_id')
+    .eq('season_id', seasonId);
+
+  if (koError) {
+    console.warn('⚠️ Knockouts query failed (continuing):', koError);
+  } else {
+    knockouts = koData ?? [];
+  }
+}
+
+const koKillsByPlayer: Record<number, number> = {};
+const koPairsCount: Record<string, number> = {};
+
+knockouts.forEach((k: any) => {
+  const killer = Number(k.killer_id);
+  const victim = Number(k.victim_id);
+
+  koKillsByPlayer[killer] = (koKillsByPlayer[killer] ?? 0) + 1;
+
+  const key = `${killer}:${victim}`;
+  koPairsCount[key] = (koPairsCount[key] ?? 0) + 1;
+});
+
+const koKing = Object.entries(koKillsByPlayer)
+  .map(([pid, kills]) => ({ pid: Number(pid), kills }))
+  .sort((a, b) => b.kills - a.kills)[0];
+
+const topRivalries = Object.entries(koPairsCount)
+  .map(([key, count]) => {
+    const [killer, victim] = key.split(':').map(Number);
+    return {
+      killerId: killer,
+      victimId: victim,
+      count,
+      killer: playerById[killer]?.name ?? `#${killer}`,
+      victim: playerById[victim]?.name ?? `#${victim}`,
+      killerImage: playerById[killer]?.image,
+      victimImage: playerById[victim]?.image,
+    };
+  })
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 8);
+
+// Awards (removed “Deadliest night” + removed “Most hunted”)
+const highestAvg = maxBy(medalRows, (r) => r.avgPoints);
+const mostGolds = maxBy(medalRows, (r) => r.gold);
+const mostSilvers = maxBy(medalRows, (r) => r.silver);
+const mostBronzes = maxBy(medalRows, (r) => r.bronze);
+const bubbleMagnet = maxBy(medalRows, (r) => r.bubble);
+const poopKing = maxBy(medalRows, (r) => r.poop);
+
+const awards = [
+  highestAvg
+    ? {
+        title: 'Highest avg points ⭐️',
+        value: `${highestAvg.value}`,
+        player: highestAvg.item,
+      }
+    : null,
+  mostGolds
+    ? {
+        title: 'Most golds 🥇',
+        value: `${mostGolds.value}`,
+        player: mostGolds.item,
+      }
+    : null,
+  mostSilvers
+    ? {
+        title: 'Most silvers 🥈',
+        value: `${mostSilvers.value}`,
+        player: mostSilvers.item,
+      }
+    : null,
+  mostBronzes
+    ? {
+        title: 'Most bronzes 🥉',
+        value: `${mostBronzes.value}`,
+        player: mostBronzes.item,
+      }
+    : null,
+  bubbleMagnet
+    ? {
+        title: 'Loves bubbles 🫧',
+        value: `${bubbleMagnet.value}`,
+        player: bubbleMagnet.item,
+      }
+    : null,
+  poopKing
+    ? {
+        title: 'Top pooper 💩',
+        value: `${poopKing.value}`,
+        player: poopKing.item,
+      }
+    : null,
+  hasKnockoutsSupport && koKing
+    ? {
+        title: 'Killer 🔪',
+        value: `${koKing.kills}`,
+        player: playerById[koKing.pid],
+      }
+    : null,
+
+  // these 2 are wrong i think!
+
+  //   biggestClimb
+  //     ? {
+  //         title: `Biggest climb in 1 game (Game ${biggestClimb.gameNumber}) 📈`,
+  //         value: `+${biggestClimb.delta} (${biggestClimb.fromPlace}→${biggestClimb.toPlace})`,
+  //         player: biggestClimb.player,
+  //       }
+  //     : null,
+  //   mostConsistent
+  //     ? {
+  //         title: 'Most consistent 🧊',
+  //         value: `±${mostConsistent.sd.toFixed(1)} (${mostConsistent.games}g)`,
+  //         player: playerById[mostConsistent.pid],
+  //       }
+  //     : null,
+].filter(Boolean) as any[];
+
+// Medal cabinet: sorted by final place then points
+const medalCabinet = medalRows.slice().sort((a, b) => {
+  const ap = playerById[a.playerId]?.finalPlace ?? 9999;
+  const bp = playerById[b.playerId]?.finalPlace ?? 9999;
+  if (ap !== bp) return ap - bp;
+  return (b.totalPoints ?? 0) - (a.totalPoints ?? 0);
+});
+
+const hero = {
+  seasonName: season.name,
+  seasonWeeks: SEASON_WEEKS,
+  gamesPlayed,
+  participantsCount,
+  champion,
+  podium,
+  gap12,
+  gap23,
+};
+---
+
+<Layout title={`Season ${hero.seasonName} Review`}>
+  <div class={styles.page}>
+    <h1 class={styles.h1}>Season {hero.seasonName} review</h1>
+
+    <!-- 1) HERO -->
+    <section class={styles.section}>
+      <div class={`${styles.cardGrid} ${styles.heroGrid}`}>
+        <div class={styles.card}>
+          <div class={styles.cardLabel}>Champion</div>
+          <div class={styles.cardRow}>
+            {
+              hero.champion?.image ? (
+                <img src={hero.champion.image} alt="" class={styles.avatarLg} />
+              ) : (
+                <div class={styles.avatarLgPlaceholder} />
+              )
+            }
+            <div class={styles.cardTitle}>{hero.champion?.name}</div>
+          </div>
+          <div class={styles.cardMeta}>
+            {hero.champion?.points} pts · place {hero.champion?.place}
+          </div>
+        </div>
+
+        <div class={styles.card}>
+          <div class={styles.cardLabel}>Season progress</div>
+          <div class={styles.cardTitle}>
+            {hero.gamesPlayed} played · {hero.seasonWeeks} weeks
+          </div>
+          <div class={styles.cardMeta}>
+            {hero.participantsCount} players took part
+          </div>
+        </div>
+
+        <div class={styles.card}>
+          <div class={styles.cardLabel}>Podium</div>
+          <ol class={styles.podiumList}>
+            {
+              hero.podium.map((p: any, i: number) => (
+                <li class={styles.podiumItem}>
+                  <span class={styles.podiumName}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                    <span class={styles.podiumName}>{p.name}</span>
+                  </span>
+                  <span class={styles.podiumPts}>{p.points} pts</span>
+                </li>
+              ))
+            }
+          </ol>
+          <div class={styles.cardMetaSm}>
+            {hero.gap12 != null ? <span>Gap #1→#2: {hero.gap12}</span> : null}
+            {
+              hero.gap23 != null ? (
+                <span> · Gap #2→#3: {hero.gap23}</span>
+              ) : null
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2) BAR RACE -->
+    <section class={styles.section}>
+      <div class={styles.sectionHeader}>
+        <h2 class={styles.h2}>Leaderboard race</h2>
+        <p class={styles.subText}>Watch the leaderboard evolve game by game.</p>
+      </div>
+
+      <div class={styles.card}>
+        <SeasonReviewBarRace
+          client:load
+          labels={raceLabels}
+          datasets={raceDatasets}
+          initialIndex={0}
+        />
+      </div>
+    </section>
+
+    <!-- 3) AWARDS -->
+    <section class={styles.section}>
+      <div class={styles.sectionHeader}>
+        <h2 class={styles.h2}>Awards</h2>
+      </div>
+
+      <div class={styles.cardGrid}>
+        {
+          awards.map((a: any) => (
+            <div class={styles.card}>
+              <div class={styles.cardLabel}>{a.title}</div>
+
+              {a.player ? (
+                <div class={styles.cardRow}>
+                  <div class={styles.cardName}>
+                    {a.player?.image ? (
+                      <img
+                        src={a.player.image}
+                        alt=""
+                        class={styles.avatarMd}
+                      />
+                    ) : (
+                      <div class={styles.avatarMdPlaceholder} />
+                    )}
+                    <div class={styles.cardTitle}>
+                      {a.player?.name ?? a.player?.label ?? 'Unknown'}
+                    </div>
+                  </div>
+
+                  <div class={styles.cardMeta}>{a.value}</div>
+                </div>
+              ) : null}
+            </div>
+          ))
+        }
+      </div>
+
+      {
+        !hasKnockoutsSupport ? (
+          <div class={styles.note}>
+            Knockouts weren’t tracked before Season 4.
+          </div>
+        ) : knockouts.length === 0 ? (
+          <div class={styles.note}>
+            No knockout data recorded yet for this season.
+          </div>
+        ) : null
+      }
+    </section>
+
+    <!-- 4) RIVALRIES -->
+    <section class={styles.section}>
+      <div class={styles.sectionHeader}>
+        <h2 class={styles.h2}>Rivalries</h2>
+        <p class={styles.subText}>Who kept taking swings at who.</p>
+      </div>
+
+      {
+        hasKnockoutsSupport && knockouts.length > 0 ? (
+          <div class={styles.cardGrid}>
+            {topRivalries.map((r: any) => (
+              <div class={styles.card}>
+                <div class={styles.rivalryRow}>
+                  <div class={styles.rivalrySide}>
+                    {r.killerImage ? (
+                      <img src={r.killerImage} alt="" class={styles.avatarSm} />
+                    ) : (
+                      <div class={styles.avatarSmPlaceholder} />
+                    )}
+                    <span class={styles.rivalryName}>{r.killer}</span>
+                  </div>
+
+                  <span class={styles.rivalryVs} aria-label="versus">
+                    🥊
+                  </span>
+
+                  <div class={styles.rivalrySide}>
+                    {r.victimImage ? (
+                      <img src={r.victimImage} alt="" class={styles.avatarSm} />
+                    ) : (
+                      <div class={styles.avatarSmPlaceholder} />
+                    )}
+                    <span class={styles.rivalryName}>{r.victim}</span>
+                  </div>
+                </div>
+
+                <div class={styles.cardMeta}>
+                  {r.count} KO{r.count === 1 ? '' : 's'}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div class={styles.note}>No knockout data to show.</div>
+        )
+      }
+    </section>
+
+    <!-- 5) MEDAL CABINET -->
+    <section class={styles.section}>
+      <div class={styles.sectionHeader}>
+        <h2 class={styles.h2}>Medal cabinet</h2>
+        <p class={styles.subText}>
+          Your season’s hardware (and… the other stuff).
+        </p>
+      </div>
+
+      <div class={styles.medalGrid}>
+        {
+          medalCabinet.map((r: any) => (
+            <a href={`/players/${r.slug}`} class={styles.medalCard}>
+              <div class={styles.medalHeader}>
+                {r.image ? (
+                  <img src={r.image} alt="" class={styles.avatarMd} />
+                ) : (
+                  <div class={styles.avatarMdPlaceholder} />
+                )}
+
+                <div class={styles.medalNameBlock}>
+                  <div class={styles.medalName}>{r.name}</div>
+                  {playerById[r.playerId]?.finalPlace != null ? (
+                    <div class={styles.medalPlace}>
+                      Place {playerById[r.playerId].finalPlace}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div class={styles.medalCounts}>
+                <div class={styles.medalChip}>
+                  <>
+                    <span>🥇</span>
+                    <b>{r.gold}</b>
+                  </>
+                </div>
+                <div class={styles.medalChip}>
+                  <>
+                    <span>🥈</span>
+                    <b>{r.silver}</b>
+                  </>
+                </div>
+                <div class={styles.medalChip}>
+                  <>
+                    <span>🥉</span>
+                    <b>{r.bronze}</b>
+                  </>
+                </div>
+                <div class={styles.medalChip}>
+                  <>
+                    <span>🫧</span>
+                    <b>{r.bubble}</b>
+                  </>
+                </div>
+                <div class={styles.medalChip}>
+                  <>
+                    <span>💩</span>
+                    <b>{r.poop}</b>
+                  </>
+                </div>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </section>
+  </div>
+</Layout>

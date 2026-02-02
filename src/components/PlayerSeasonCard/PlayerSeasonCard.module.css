@@ -1,0 +1,251 @@
+.wrap {
+  width: 100%;
+  margin: 18px 0 8px;
+}
+
+.card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.header {
+  display: grid;
+  gap: 12px;
+}
+
+.kicker {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-size: 18px;
+}
+
+.select {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+  max-width: 150px;
+}
+
+.reviewLink {
+  margin-top: 6px;
+  display: inline-block;
+  font-size: 13px;
+  opacity: 0.85;
+  text-decoration: none;
+  color: inherit;
+}
+
+.reviewLink:hover {
+  text-decoration: underline;
+}
+
+.big {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding-top: 12px;
+}
+
+.bigTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.place {
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.points {
+  font-weight: 800;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bigSub {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.medals {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.medalChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.04);
+  font-size: 13px;
+}
+
+.medalChip b {
+  font-variant-numeric: tabular-nums;
+}
+
+.emojiTrail {
+  margin-top: 10px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  opacity: 0.9;
+
+  /* wrap on mobile (no ellipsis) */
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.koBlock {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.koHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.koTitle {
+  font-weight: 850;
+}
+
+.koMeta {
+  font-size: 13px;
+  opacity: 0.8;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dot {
+  opacity: 0.6;
+}
+
+.rivals {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.rivalChip {
+  display: grid;
+  grid-template-columns: 22px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.02);
+  text-decoration: none;
+  color: inherit;
+}
+
+.rivalAvatar,
+.rivalAvatarPlaceholder {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.rivalAvatarPlaceholder {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.rivalName {
+  font-weight: 750;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Rivals row: NEW clearer KO numbers --- */
+
+.rivalKODuo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.rivalKO,
+.rivalDeath {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.koIcon {
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.koNum {
+  font-size: 16px; /* BIGGER */
+  font-weight: 900; /* BOLDER */
+  line-height: 1;
+}
+
+.rivalSep {
+  opacity: 0.5;
+}
+
+/* Optional: make the rival chip a bit roomier so the bigger numbers breathe */
+.rivalChip {
+  /* keep whatever you already have, but if it feels tight add: */
+  gap: 10px;
+}
+
+.koEmpty,
+.koNote {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* wider screens */
+@media (min-width: 700px) {
+  .header {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .select {
+    max-width: 190px;
+  }
+
+  .rivals {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
