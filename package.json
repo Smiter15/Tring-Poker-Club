@@ -16,7 +16,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
-    "astro": "^5.16.12",
+    "astro": "^5.17.1",
     "classnames": "^2.5.1",
     "framer-motion": "^12.11.4",
     "highcharts": "^12.2.0",

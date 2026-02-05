@@ -213,17 +213,17 @@ Object.values(medalsByPlayer).forEach((r) => {
 const medalRows = Object.values(medalsByPlayer);
 
 // helper
-const maxBy = <T,>(arr: T[], fn: (t: T) => number) => {
-  let best: T | null = null;
+const maxAllBy = <T,>(arr: T[], fn: (t: T) => number) => {
+  if (!arr.length) return null;
+
   let bestVal = -Infinity;
   arr.forEach((x) => {
     const v = fn(x);
-    if (v > bestVal) {
-      bestVal = v;
-      best = x;
-    }
+    if (v > bestVal) bestVal = v;
   });
-  return best ? { item: best, value: bestVal } : null;
+
+  const items = arr.filter((x) => fn(x) === bestVal);
+  return { items, value: bestVal };
 };
 
 const minBy = <T,>(arr: T[], fn: (t: T) => number) => {
@@ -402,82 +402,103 @@ const topRivalries = Object.entries(koPairsCount)
   .sort((a, b) => b.count - a.count)
   .slice(0, 8);
 
-// Awards (removed “Deadliest night” + removed “Most hunted”)
-const highestAvg = maxBy(medalRows, (r) => r.avgPoints);
-const mostGolds = maxBy(medalRows, (r) => r.gold);
-const mostSilvers = maxBy(medalRows, (r) => r.silver);
-const mostBronzes = maxBy(medalRows, (r) => r.bronze);
-const bubbleMagnet = maxBy(medalRows, (r) => r.bubble);
-const poopKing = maxBy(medalRows, (r) => r.poop);
+const highestAvg = maxAllBy(medalRows, (r) => r.avgPoints);
+const mostGolds = maxAllBy(medalRows, (r) => r.gold);
+const mostSilvers = maxAllBy(medalRows, (r) => r.silver);
+const mostBronzes = maxAllBy(medalRows, (r) => r.bronze);
+const bubbleMagnet = maxAllBy(medalRows, (r) => r.bubble);
+const poopKing = maxAllBy(medalRows, (r) => r.poop);
 
-const awards = [
+// tie-aware KO king (if KO data exists)
+const koKillRows = Object.entries(koKillsByPlayer).map(([pid, kills]) => ({
+  pid: Number(pid),
+  kills: Number(kills),
+}));
+const koKings = hasKnockoutsSupport
+  ? maxAllBy(koKillRows, (r) => r.kills)
+  : null;
+
+type AwardPlayer = {
+  name: string;
+  image?: string;
+  slug?: string;
+};
+
+type Award = {
+  title: string;
+  value: string;
+  players: AwardPlayer[];
+};
+
+const medalRowToAwardPlayer = (r: any): AwardPlayer => ({
+  name: r.name,
+  image: r.image,
+  slug: r.slug,
+});
+
+const idToAwardPlayer = (pid: number): AwardPlayer => ({
+  name: playerById[pid]?.name ?? `#${pid}`,
+  image: playerById[pid]?.image,
+  slug: playerById[pid]?.slug,
+});
+
+const awards: Award[] = [
   highestAvg
     ? {
         title: 'Highest avg points ⭐️',
         value: `${highestAvg.value}`,
-        player: highestAvg.item,
+        players: highestAvg.items.map(medalRowToAwardPlayer),
       }
     : null,
+
   mostGolds
     ? {
         title: 'Most golds 🥇',
         value: `${mostGolds.value}`,
-        player: mostGolds.item,
+        players: mostGolds.items.map(medalRowToAwardPlayer),
       }
     : null,
+
   mostSilvers
     ? {
         title: 'Most silvers 🥈',
         value: `${mostSilvers.value}`,
-        player: mostSilvers.item,
+        players: mostSilvers.items.map(medalRowToAwardPlayer),
       }
     : null,
+
   mostBronzes
     ? {
         title: 'Most bronzes 🥉',
         value: `${mostBronzes.value}`,
-        player: mostBronzes.item,
+        players: mostBronzes.items.map(medalRowToAwardPlayer),
       }
     : null,
+
   bubbleMagnet
     ? {
         title: 'Loves bubbles 🫧',
         value: `${bubbleMagnet.value}`,
-        player: bubbleMagnet.item,
+        players: bubbleMagnet.items.map(medalRowToAwardPlayer),
       }
     : null,
+
   poopKing
     ? {
-        title: 'Top pooper 💩',
+        title: 'Top poopers 💩',
         value: `${poopKing.value}`,
-        player: poopKing.item,
+        players: poopKing.items.map(medalRowToAwardPlayer),
       }
     : null,
-  hasKnockoutsSupport && koKing
+
+  hasKnockoutsSupport && koKings
     ? {
         title: 'Killer 🔪',
-        value: `${koKing.kills}`,
-        player: playerById[koKing.pid],
+        value: `${koKings.value}`,
+        players: koKings.items.map((x) => idToAwardPlayer(x.pid)),
       }
     : null,
-
-  // these 2 are wrong i think!
-
-  //   biggestClimb
-  //     ? {
-  //         title: `Biggest climb in 1 game (Game ${biggestClimb.gameNumber}) 📈`,
-  //         value: `+${biggestClimb.delta} (${biggestClimb.fromPlace}→${biggestClimb.toPlace})`,
-  //         player: biggestClimb.player,
-  //       }
-  //     : null,
-  //   mostConsistent
-  //     ? {
-  //         title: 'Most consistent 🧊',
-  //         value: `±${mostConsistent.sd.toFixed(1)} (${mostConsistent.games}g)`,
-  //         player: playerById[mostConsistent.pid],
-  //       }
-  //     : null,
-].filter(Boolean) as any[];
+].filter(Boolean) as Award[];
 
 // Medal cabinet: sorted by final place then points
 const medalCabinet = medalRows.slice().sort((a, b) => {
@@ -589,21 +610,39 @@ const hero = {
             <div class={styles.card}>
               <div class={styles.cardLabel}>{a.title}</div>
 
-              {a.player ? (
+              {a.players?.length ? (
                 <div class={styles.cardRow}>
-                  <div class={styles.cardName}>
-                    {a.player?.image ? (
-                      <img
-                        src={a.player.image}
-                        alt=""
-                        class={styles.avatarMd}
-                      />
-                    ) : (
-                      <div class={styles.avatarMdPlaceholder} />
-                    )}
-                    <div class={styles.cardTitle}>
-                      {a.player?.name ?? a.player?.label ?? 'Unknown'}
-                    </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;min-width:0">
+                    {a.players.map((p: any) => (
+                      <div class={styles.cardName}>
+                        {p.image ? (
+                          <img src={p.image} alt="" class={styles.avatarMd} />
+                        ) : (
+                          <div class={styles.avatarMdPlaceholder} />
+                        )}
+
+                        {p.slug ? (
+                          <a
+                            href={`/players/${p.slug}`}
+                            style="color:inherit;text-decoration:none;min-width:0"
+                          >
+                            <div
+                              class={styles.cardTitle}
+                              style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+                            >
+                              {p.name}
+                            </div>
+                          </a>
+                        ) : (
+                          <div
+                            class={styles.cardTitle}
+                            style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+                          >
+                            {p.name}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
                   <div class={styles.cardMeta}>{a.value}</div>
