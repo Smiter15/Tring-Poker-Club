@@ -246,6 +246,23 @@ const stddev = (xs: number[]) => {
   return Math.sqrt(v);
 };
 
+const topNWithTies = <T,>(arr: T[], getValue: (t: T) => number, n: number) => {
+  if (!arr.length) return null;
+
+  const sorted = arr.slice().sort((a, b) => getValue(b) - getValue(a));
+
+  // find threshold value (value at nth position)
+  const thresholdItem = sorted[n - 1];
+  if (!thresholdItem) {
+    return { items: sorted, value: getValue(sorted[0]) };
+  }
+
+  const threshold = getValue(thresholdItem);
+  const items = sorted.filter((x) => getValue(x) >= threshold);
+
+  return { items, threshold, topValue: getValue(sorted[0]) };
+};
+
 // -------- Progression data for bar-race ----------
 const gamesById: Record<number, any> = {};
 games.forEach((g: any, idx: number) => {
@@ -410,12 +427,13 @@ const bubbleMagnet = maxAllBy(medalRows, (r) => r.bubble);
 const poopKing = maxAllBy(medalRows, (r) => r.poop);
 
 // tie-aware KO king (if KO data exists)
-const koKillRows = Object.entries(koKillsByPlayer).map(([pid, kills]) => ({
-  pid: Number(pid),
-  kills: Number(kills),
-}));
-const koKings = hasKnockoutsSupport
-  ? maxAllBy(koKillRows, (r) => r.kills)
+// Top 3 killers (incl ties at 3rd)
+const koKillRows = Object.entries(koKillsByPlayer)
+  .map(([pid, kills]) => ({ pid: Number(pid), kills: Number(kills) }))
+  .filter((x) => x.kills > 0);
+
+const topKillers = hasKnockoutsSupport
+  ? topNWithTies(koKillRows, (r) => r.kills, 3)
   : null;
 
 type AwardPlayer = {
@@ -491,11 +509,14 @@ const awards: Award[] = [
       }
     : null,
 
-  hasKnockoutsSupport && koKings
+  hasKnockoutsSupport && topKillers
     ? {
-        title: 'Killer 🔪',
-        value: `${koKings.value}`,
-        players: koKings.items.map((x) => idToAwardPlayer(x.pid)),
+        title: 'Top killers 🔪',
+        value: `${topKillers.threshold}+`, // e.g. "3+" means all shown have >=3 kills
+        players: topKillers.items.map((x) => ({
+          ...idToAwardPlayer(x.pid),
+          kills: x.kills,
+        })),
       }
     : null,
 ].filter(Boolean) as Award[];
@@ -611,41 +632,57 @@ const hero = {
               <div class={styles.cardLabel}>{a.title}</div>
 
               {a.players?.length ? (
-                <div class={styles.cardRow}>
-                  <div style="display:flex;flex-wrap:wrap;gap:8px;min-width:0">
-                    {a.players.map((p: any) => (
-                      <div class={styles.cardName}>
-                        {p.image ? (
-                          <img src={p.image} alt="" class={styles.avatarMd} />
-                        ) : (
-                          <div class={styles.avatarMdPlaceholder} />
-                        )}
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  {/* show top 3 winners */}
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    {a.players.slice(0, 3).map((p: any) => (
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0">
+                        <div class={styles.cardName} style="min-width:0">
+                          {p.image ? (
+                            <img src={p.image} alt="" class={styles.avatarMd} />
+                          ) : (
+                            <div class={styles.avatarMdPlaceholder} />
+                          )}
 
-                        {p.slug ? (
-                          <a
-                            href={`/players/${p.slug}`}
-                            style="color:inherit;text-decoration:none;min-width:0"
-                          >
+                          {p.slug ? (
+                            <a
+                              href={`/players/${p.slug}`}
+                              style="color:inherit;text-decoration:none;min-width:0"
+                            >
+                              <div
+                                class={styles.cardTitle}
+                                style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+                              >
+                                {p.name}
+                              </div>
+                            </a>
+                          ) : (
                             <div
                               class={styles.cardTitle}
                               style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
                             >
                               {p.name}
                             </div>
-                          </a>
-                        ) : (
-                          <div
-                            class={styles.cardTitle}
-                            style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
-                          >
-                            {p.name}
-                          </div>
-                        )}
+                          )}
+                        </div>
+
+                        {/* score on the right (kills if present, otherwise the award value) */}
+                        <div
+                          class={styles.cardMeta}
+                          style="font-size:16px;white-space:nowrap"
+                        >
+                          {p.kills != null ? `${p.kills}` : a.value}
+                        </div>
                       </div>
                     ))}
                   </div>
 
-                  <div class={styles.cardMeta}>{a.value}</div>
+                  {/* if more than 3 winners, show a tiny hint */}
+                  {a.players.length > 3 ? (
+                    <div style="opacity:0.75;font-size:12px">
+                      +{a.players.length - 3} more tied
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
