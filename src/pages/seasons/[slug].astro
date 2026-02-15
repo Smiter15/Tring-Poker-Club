@@ -235,13 +235,13 @@ const datasets = lines.map((line: string) => {
       placeByLabel={placeByLabel}
     />
 
-    <h2>Leaderboard Progression</h2>
+    <!-- <h2>Leaderboard Progression</h2>
     <SeasonLeaderboardBumpChart
       client:load
       labels={dateLabels}
       datasets={datasets}
       avatarByLabel={avatarByLabel}
-    />
+    /> -->
 
     <h2>Cumulative Points</h2>
     <SeasonLineChart client:load labels={dateLabels} datasets={datasets} />
