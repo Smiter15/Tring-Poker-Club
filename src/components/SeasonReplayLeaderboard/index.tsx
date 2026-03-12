@@ -109,7 +109,6 @@ export default function SeasonReplayLeaderboard({
   }, [datasets, labels.length]);
 
   const rows = rowsByGame[gameIndex] ?? [];
-  console.log({ rows });
   const isFinalPlayedGame = gameIndex === playedGames - 1;
 
   const pinnedRow = pinned ? rows.find((r) => r.label === pinned) : undefined;
