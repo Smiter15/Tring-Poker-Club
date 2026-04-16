@@ -1,23 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import * as Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
+import type * as HighchartsType from 'highcharts';
 import styles from './SeasonReviewBarRace.module.css';
 
 export interface SeasonReviewBarRaceProps {
-  labels: string[]; // "Game 1"..."Game N"
+  labels: string[];
   datasets: {
     label: string;
     data: number[];
     avatarUrl?: string;
     playerSlug?: string;
   }[];
-  initialIndex?: number; // default 0
-  topN?: number; // optional limit (default show all)
+  initialIndex?: number;
+  topN?: number;
 }
 
 type TooltipThis = {
   key?: string | number;
   y?: number;
+};
+
+type LoadedChartLibs = {
+  Highcharts: typeof HighchartsType;
+  HighchartsReact: any;
 };
 
 function escapeHtml(input: string) {
@@ -35,19 +39,49 @@ export default function SeasonReviewBarRace({
   initialIndex = 0,
   topN,
 }: SeasonReviewBarRaceProps) {
+  const [libs, setLibs] = useState<LoadedChartLibs | null>(null);
+
   const maxIdx = Math.max(0, labels.length - 1);
   const [idx, setIdx] = useState(Math.min(Math.max(initialIndex, 0), maxIdx));
   const [playing, setPlaying] = useState(false);
 
   const chartRef = useRef<any>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadChartLibs() {
+      try {
+        const hcMod = await import('highcharts');
+        const Highcharts = (hcMod as any).default ?? hcMod;
+
+        const reactMod = await import('highcharts-react-official');
+        const HighchartsReact =
+          (reactMod as any).default ?? (reactMod as any).HighchartsReact;
+
+        if (!cancelled) {
+          setLibs({ Highcharts, HighchartsReact });
+        }
+      } catch (err) {
+        console.error('Error loading Highcharts bar race libs:', err);
+      }
+    }
+
+    loadChartLibs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const avatarByName = useMemo(() => {
     const m: Record<string, string | undefined> = {};
-    datasets.forEach((d) => (m[d.label] = d.avatarUrl));
+    datasets.forEach((d) => {
+      m[d.label] = d.avatarUrl;
+    });
     return m;
   }, [datasets]);
 
-  // Which names to show (all by default, or topN for the current frame)
   const visibleNames = useMemo(() => {
     if (!topN) return new Set(datasets.map((d) => d.label));
 
@@ -59,15 +93,12 @@ export default function SeasonReviewBarRace({
     return new Set(ranked.map((r) => r.name));
   }, [datasets, idx, topN]);
 
-  // IMPORTANT: Keep data in a stable order (datasets order).
-  // Let dataSorting handle the reordering animation.
   const frameData = useMemo(() => {
     return datasets
       .filter((d) => visibleNames.has(d.label))
       .map((d) => [d.label, d.data[idx] ?? 0] as [string, number]);
   }, [datasets, idx, visibleNames]);
 
-  // Lock yAxis max to final frame so it doesn't rescale every step (looks smoother).
   const finalMax = useMemo(() => {
     let m = 0;
     for (const ds of datasets) {
@@ -77,25 +108,19 @@ export default function SeasonReviewBarRace({
     return Math.ceil(m / 10) * 10 + 10;
   }, [datasets, maxIdx]);
 
-  // Smooth update between frames:
-  // updatePoints=true prevents "all bars drop" redraw behaviour.
   useEffect(() => {
-    const chart: Highcharts.Chart | undefined = chartRef.current?.chart;
+    const chart: HighchartsType.Chart | undefined = chartRef.current?.chart;
     if (!chart || !chart.series?.[0]) return;
 
-    // Keep subtitle in sync without full chart.update jitter
     chart.setTitle(
       undefined,
       { text: labels[idx] ?? `Game ${idx + 1}` },
       false,
     );
 
-    // setData(data, redraw, animation, updatePoints)
-    // animation=false here is OK: dataSorting provides the motion.
     (chart.series[0] as any).setData(frameData, true, { duration: 550 }, true);
   }, [frameData, idx, labels]);
 
-  // Play loop
   useEffect(() => {
     if (!playing) return;
 
@@ -106,12 +131,15 @@ export default function SeasonReviewBarRace({
     return () => window.clearInterval(t);
   }, [playing, maxIdx]);
 
-  // Stop at end
   useEffect(() => {
     if (playing && idx >= maxIdx) setPlaying(false);
   }, [playing, idx, maxIdx]);
 
-  const options: Highcharts.Options = {
+  if (!libs) return null;
+
+  const { Highcharts, HighchartsReact } = libs;
+
+  const options: HighchartsType.Options = {
     chart: {
       type: 'bar',
       backgroundColor: 'transparent',
@@ -138,14 +166,13 @@ export default function SeasonReviewBarRace({
         useHTML: true,
         style: { fontSize: '12px' } as any,
         formatter: function (
-          this: Highcharts.AxisLabelsFormatterContextObject,
+          this: HighchartsType.AxisLabelsFormatterContextObject,
         ) {
           const name = String(this.value ?? '');
           const avatar = avatarByName[name];
           const img = avatar
             ? `<img src="${avatar}" alt="" style="width:18px;height:18px;border-radius:999px;vertical-align:middle;margin-left:8px" />`
             : '';
-          // avatar to the RIGHT of the name
           return `<span style="display:inline-flex;align-items:center;white-space:nowrap;">${escapeHtml(
             name,
           )}${img}</span>`;
@@ -164,7 +191,6 @@ export default function SeasonReviewBarRace({
 
     plotOptions: {
       series: {
-        // demo-style: let dataSorting do the movement
         animation: false,
         groupPadding: 0,
         pointPadding: 0.12,

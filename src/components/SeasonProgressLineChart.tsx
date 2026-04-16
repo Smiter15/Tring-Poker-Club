@@ -1,22 +1,49 @@
 import { useEffect, useMemo, useState } from 'react';
-import * as Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
+import type * as HighchartsType from 'highcharts';
 
 export interface SeasonLineChartProps {
   labels: string[];
   datasets: { label: string; data: number[]; avatarUrl?: string }[];
 }
 
+type LoadedChartLibs = {
+  Highcharts: typeof HighchartsType;
+  HighchartsReact: any;
+};
+
 export default function SeasonLineChart({
   labels,
   datasets,
 }: SeasonLineChartProps) {
-  const [themeReady, setThemeReady] = useState(false);
+  const [libs, setLibs] = useState<LoadedChartLibs | null>(null);
 
   useEffect(() => {
-    import('highcharts/themes/brand-light')
-      .then(() => setThemeReady(true))
-      .catch((err) => console.error('Error loading Highcharts theme:', err));
+    let cancelled = false;
+
+    async function loadChartLibs() {
+      try {
+        const hcMod = await import('highcharts');
+        const Highcharts = (hcMod as any).default ?? hcMod;
+
+        const reactMod = await import('highcharts-react-official');
+        const HighchartsReact =
+          (reactMod as any).default ?? (reactMod as any).HighchartsReact;
+
+        await import('highcharts/themes/brand-light');
+
+        if (!cancelled) {
+          setLibs({ Highcharts, HighchartsReact });
+        }
+      } catch (err) {
+        console.error('Error loading Highcharts line chart libs:', err);
+      }
+    }
+
+    loadChartLibs();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const avatarByLabel = useMemo(() => {
@@ -27,20 +54,21 @@ export default function SeasonLineChart({
     return map;
   }, [datasets]);
 
-  if (!themeReady) return null;
+  if (!libs) return null;
 
-  const series: Highcharts.SeriesSplineOptions[] = datasets.map((ds) => ({
+  const { Highcharts, HighchartsReact } = libs;
+
+  const series: HighchartsType.SeriesSplineOptions[] = datasets.map((ds) => ({
     type: 'spline',
     name: ds.label,
     data: ds.data,
     marker: { enabled: false },
     lineWidth: 2,
     pointPlacement: 'on',
-    // store avatar on the series options so legend/tooltip can access it
-    custom: { avatarUrl: ds.avatarUrl },
-  })) as any;
+    custom: { avatarUrl: ds.avatarUrl } as any,
+  }));
 
-  const options: Highcharts.Options = {
+  const options: HighchartsType.Options = {
     chart: {
       type: 'spline',
       marginRight: 40,
@@ -67,7 +95,7 @@ export default function SeasonLineChart({
       layout: 'horizontal',
       useHTML: true,
       labelFormatter: function () {
-        const s: any = this as any;
+        const s: any = this;
         const avatar = s?.options?.custom?.avatarUrl || avatarByLabel[s.name];
         const img = avatar
           ? `<img src="${avatar}" alt="" style="width:18px;height:18px;border-radius:999px;vertical-align:middle;margin-right:8px" />`
@@ -96,7 +124,7 @@ export default function SeasonLineChart({
           s +=
             `<tr>` +
             `<td style="padding-right:6px">${img}</td>` +
-            `<td style="color:${p.series.color};padding-right:4px">\u25CF</td>` +
+            `<td style="color:${p.series.color};padding-right:4px">●</td>` +
             `<td>${p.series.name}:</td>` +
             `<td style="padding-left:4px"><b>${p.y}</b></td>` +
             `</tr>`;
