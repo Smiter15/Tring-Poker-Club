@@ -1,0 +1,68 @@
+---
+import { supabase } from '../../../db/supabase';
+
+import Layout from '../../../layouts/Layout.astro';
+import AddGameForm from '../../../components/AddGameForm';
+
+import styles from './_addGame.module.css';
+
+const { data: activeSeason, error: seasonError }: any = await supabase
+  .from('seasons')
+  .select('id')
+  .eq('is_active', true)
+  .single();
+
+if (seasonError) {
+  console.error('❌ Failed to load active season:', seasonError);
+  throw new Error('Could not load active season');
+}
+
+const { count: seasonGamesCount, error: seasonGamesError } = await supabase
+  .from('games')
+  .select('*', { count: 'exact', head: true })
+  .eq('season_id', activeSeason.id);
+
+if (seasonGamesError) {
+  console.error(
+    '❌ Failed to load games for season',
+    activeSeason.id,
+    seasonGamesError,
+  );
+  throw new Error('Could not load season games');
+}
+
+const { count: gamesCount } = await supabase
+  .from('games')
+  .select('*', { count: 'exact', head: true });
+
+const { data: players } = await supabase
+  .from('players')
+  .select(
+    `
+    id,
+    slug,
+    first_name,
+    last_name,
+    image_url,
+    nickname,
+    prefer_nickname
+  `,
+  )
+  .order('first_name', { ascending: true });
+---
+
+<Layout title="Add Game">
+  <div class={styles.container}>
+    <h1>
+      Game results for game {seasonGamesCount! + 1} of season {activeSeason?.id}
+    </h1>
+
+    <AddGameForm
+      client:only="react"
+      players={players}
+      activeSeasonId={activeSeason?.id}
+      seasonGameNumber={seasonGamesCount! + 1}
+      nextGameId={gamesCount! + 1}
+    />
+  </div>
+</Layout>
