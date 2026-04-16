@@ -1,6 +1,5 @@
 import { useMemo, useEffect, useState } from 'react';
-import * as Highcharts from 'highcharts';
-import { HighchartsReact } from 'highcharts-react-official';
+import type Highcharts from 'highcharts';
 
 type KOEvent = {
   killerName: string;
@@ -14,20 +13,41 @@ interface Props {
 }
 
 export default function GameKnockoutNetworkGraph({ events }: Props) {
-  const [hcLoaded, setHcLoaded] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(
-    typeof window !== 'undefined' ? window.innerWidth : 1024,
-  );
+  const [HC, setHC] = useState<any>(null);
+  const [HCReact, setHCReact] = useState<any>(null);
+  const [windowWidth, setWindowWidth] = useState(1024);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    import('highcharts/modules/networkgraph').then(() => setHcLoaded(true));
+    let cancelled = false;
+
+    async function loadChartLibs() {
+      if (typeof window === 'undefined') return;
+
+      const [hcMod, reactMod] = await Promise.all([
+        import('highcharts'),
+        import('highcharts-react-official'),
+      ]);
+
+      await import('highcharts/modules/networkgraph');
+
+      if (cancelled) return;
+
+      setHC(hcMod.default ?? hcMod);
+      setHCReact(() => reactMod.default ?? (reactMod as any).HighchartsReact);
+      setWindowWidth(window.innerWidth);
+    }
+
+    loadChartLibs();
 
     function handleResize() {
       setWindowWidth(window.innerWidth);
     }
+
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   const isMobile = windowWidth < 768;
@@ -55,6 +75,7 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
           imageUrl: victimImage || undefined,
         };
       }
+
       killCounts[killerName] = (killCounts[killerName] || 0) + 1;
 
       const key = `${killerName}|${victimName}`;
@@ -63,14 +84,14 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
 
     const BASE = 48;
     const sizeMap: Record<string, number> = {};
+
     Object.entries(killCounts).forEach(([name, count]) => {
       const originalSize = Math.round(BASE * (1 + count * 0.25));
       sizeMap[name] = isMobile ? Math.round(originalSize / 2) : originalSize;
     });
 
     const nodesArr = Object.values(nodesMap).map((n) => {
-      const isImage = !!n.imageUrl;
-      if (isImage) {
+      if (n.imageUrl) {
         const size = sizeMap[n.id] || (isMobile ? BASE / 2 : BASE);
         return {
           id: n.id,
@@ -84,11 +105,11 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
           },
         };
       }
-      const radius = isMobile ? 6 : 12;
+
       return {
         id: n.id,
         name: n.name,
-        marker: { radius },
+        marker: { radius: isMobile ? 6 : 12 },
       };
     });
 
@@ -108,11 +129,10 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
     return MIN_HEIGHT + extra;
   }, [nodes]);
 
-  if (!hcLoaded) return null;
+  if (!HC || !HCReact) return null;
 
-  // Determine arrow length: half on mobile
+  const HighchartsReact = HCReact;
   const arrowLen = isMobile ? 6 : 12;
-  // Also halve link length if desired
   const linkLen = isMobile ? 17.5 : 35;
 
   const options: Highcharts.Options = {
@@ -123,7 +143,8 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
       height: isMobile ? chartHeight / 2 + 200 : chartHeight + 200,
       events: {
         load(this: Highcharts.Chart) {
-          const H: any = Highcharts;
+          const H: any = HC;
+
           H.wrap(
             H.seriesTypes.networkgraph.prototype.pointClass.prototype,
             'getLinkPath',
@@ -137,7 +158,6 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
               const m = to.marker || {};
               const r = m.width ? m.width / 2 : m.radius ? m.radius : 12;
 
-              // Use arrowLen from closure
               const len = arrowLen;
               const wid = 6;
 
@@ -184,6 +204,7 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
             const m = this.point.marker || {};
             const diameter = (m.width ?? (m.radius ? m.radius * 2 : 48)) || 48;
             const offset = diameter / 2;
+
             return `<div style="
               display:inline-block;
               margin-top:${offset}px;
@@ -227,7 +248,7 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
         overflowY: 'auto',
       }}
     >
-      <HighchartsReact highcharts={Highcharts} options={options} />
+      <HighchartsReact highcharts={HC} options={options} />
     </div>
   );
 }
