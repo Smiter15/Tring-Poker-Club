@@ -228,7 +228,7 @@ const datasets = lines.map((line: string) => {
     <h2>{season.is_active ? 'Current standings' : 'Results'}</h2>
 
     <SeasonReplayLeaderboard
-      client:load
+      client:only="react"
       labels={dateLabels}
       datasets={datasets}
       metaByLabel={metaByLabel}
@@ -237,16 +237,20 @@ const datasets = lines.map((line: string) => {
 
     <!-- <h2>Leaderboard Progression</h2>
     <SeasonLeaderboardBumpChart
-      client:load
+      client:only="react"
       labels={dateLabels}
       datasets={datasets}
       avatarByLabel={avatarByLabel}
     /> -->
 
     <h2>Cumulative Points</h2>
-    <SeasonLineChart client:load labels={dateLabels} datasets={datasets} />
+    <SeasonLineChart
+      client:only="react"
+      labels={dateLabels}
+      datasets={datasets}
+    />
 
     <h2>Games</h2>
-    <Table client:load data={gamesTableData} />
+    <Table client:only="react" data={gamesTableData} />
   </div>
 </Layout>

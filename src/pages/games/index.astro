@@ -79,7 +79,7 @@ const currentSeasonGames = seasonsMap[currentSeason].map((game) => ({
   <div class={styles.container}>
     <section>
       <h2>Current season games</h2>
-      <Table client:load data={currentSeasonGames} />
+      <Table client:only="react" data={currentSeasonGames} />
     </section>
 
     <section>
@@ -99,7 +99,7 @@ const currentSeasonGames = seasonsMap[currentSeason].map((game) => ({
           return (
             <section>
               <h3>Season {season}</h3>
-              <Table client:load data={tableData} />
+              <Table client:only="react" data={tableData} />
             </section>
           );
         })

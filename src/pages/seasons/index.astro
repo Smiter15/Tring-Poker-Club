@@ -114,12 +114,12 @@ const previousSeasonsTableData = previousSeasons.map((s) => ({
 
     <section>
       <h2 class={styles.sectionHeader}>Current season</h2>
-      <Table client:load data={currentSeasonTableData} />
+      <Table client:only="react" data={currentSeasonTableData} />
     </section>
 
     <section>
       <h2 class={styles.sectionHeader}>Previous seasons</h2>
-      <Table client:load data={previousSeasonsTableData} />
+      <Table client:only="react" data={previousSeasonsTableData} />
     </section>
   </div>
 </Layout>

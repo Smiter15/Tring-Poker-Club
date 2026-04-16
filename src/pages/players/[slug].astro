@@ -379,7 +379,7 @@ const statsMap: Record<string, KOStat> = {};
 
     {/* NEW: Season snapshot card (most recent season played + dropdown) */}
     <PlayerSeasonCard
-      client:load
+      client:only="react"
       seasons={seasonsForCard}
       statsBySeasonId={seasonStatsById}
       defaultSeasonId={defaultSeasonId}
@@ -410,7 +410,7 @@ const statsMap: Record<string, KOStat> = {};
             <h3 style={{ marginTop: '30px' }}>
               Season {seasonMetaById[seasonId]?.name ?? seasonId}
             </h3>
-            <Table client:load data={tableData} showEmojis={true} />
+            <Table client:only="react" data={tableData} showEmojis={true} />
           </section>
         );
       })
@@ -422,7 +422,7 @@ const statsMap: Record<string, KOStat> = {};
           <div>
             <h2 style="margin-bottom:0">Knockouts vs Opponents</h2>
             <FilterableKnockoutChart
-              client:load
+              client:only="react"
               rawKOs={rawKOs}
               playerId={rawPlayer.id}
             />

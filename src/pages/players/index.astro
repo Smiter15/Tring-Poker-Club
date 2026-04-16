@@ -52,6 +52,6 @@ const tableData = await Promise.all(
 
 <Layout title="Players">
   <div class={styles.container}>
-    <Table client:load data={tableData} />
+    <Table client:only="react" data={tableData} />
   </div>
 </Layout>
