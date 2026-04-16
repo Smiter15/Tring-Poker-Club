@@ -216,7 +216,7 @@ const knockoutTableData = Object.values(grouped).map(
         <>
           <h2 style={{ marginTop: '50px' }}>Knockouts</h2>
           <Table client:load data={knockoutTableData} />
-          <GameKnockoutNetworkGraph client:load events={events} />
+          <GameKnockoutNetworkGraph client:only="react" events={events} />
         </>
       )
     }
