@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as Highcharts from 'highcharts';
-import { HighchartsReact } from 'highcharts-react-official';
+import HighchartsReact from 'highcharts-react-official';
 import styles from './SeasonReviewBarRace.module.css';
 
 export interface SeasonReviewBarRaceProps {

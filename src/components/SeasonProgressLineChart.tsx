@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as Highcharts from 'highcharts';
-import { HighchartsReact } from 'highcharts-react-official';
+import HighchartsReact from 'highcharts-react-official';
 
 export interface SeasonLineChartProps {
   labels: string[];
