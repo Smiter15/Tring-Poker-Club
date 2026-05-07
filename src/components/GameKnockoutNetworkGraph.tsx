@@ -200,7 +200,18 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
           enabled: true,
           useHTML: true,
           allowOverlap: true,
+          linkFormat: '',
+          linkTextPath: {
+            enabled: false,
+          },
+          linkFormatter() {
+            return '';
+          },
           formatter(this: any) {
+            if (!this.point?.isNode || this.point.fromNode) {
+              return false;
+            }
+
             const m = this.point.marker || {};
             const diameter = (m.width ?? (m.radius ? m.radius * 2 : 48)) || 48;
             const offset = diameter / 2;
