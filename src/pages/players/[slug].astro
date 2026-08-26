@@ -416,7 +416,12 @@ const totalGames = Object.values(seasonsMap).reduce(
           return (
             <div style="margin-top: 28px">
               <h3>Season {seasonMetaById[seasonId]?.name ?? seasonId}</h3>
-              <Table client:only="react" data={tableData} showEmojis={true} />
+              <Table
+                client:only="react"
+                data={tableData}
+                showEmojis={true}
+                mobileHiddenFields={['date']}
+              />
             </div>
           );
         })

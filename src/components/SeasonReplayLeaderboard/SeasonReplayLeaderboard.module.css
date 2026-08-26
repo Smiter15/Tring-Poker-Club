@@ -299,48 +299,45 @@
     gap: 6px;
   }
 
-  /* Mobile layout: rank | player | games | avg | pts | move */
+  /* Keep the essential standings visible without horizontal scrolling. */
   .colHeader {
     display: grid;
-    grid-template-columns: 40px 1fr 44px 52px 58px 54px; /* must match .rowButton */
-    gap: 8px;
-    padding: 8px 10px;
+    grid-template-columns: 30px minmax(0, 1fr) 48px 58px;
+    gap: 6px;
+    padding: 8px;
     border-radius: 12px 12px 0 0;
   }
 
   /* Compact header labels */
-  .colGames::after {
-    content: 'G';
-  }
   .colAvg::after {
     content: 'Avg';
   }
   .colPts::after {
     content: 'Pts';
   }
-  .colMove::after {
-    content: 'Δ';
-  }
-
   /* Hide the existing text in those header cells on mobile (so we can use short labels) */
-  .colGames,
   .colAvg,
-  .colPts,
-  .colMove {
+  .colPts {
     font-size: 0;
   }
 
-  .colGames::after,
   .colAvg::after,
-  .colPts::after,
-  .colMove::after {
+  .colPts::after {
     font-size: 12px;
   }
 
+  .colGames,
+  .games,
+  .colMove,
+  .delta {
+    display: none;
+  }
+
   .rowButton {
-    grid-template-columns: 20px 1fr 44px 52px 58px 54px; /* rank | player | games | avg | pts | move */
-    padding: 10px 10px 10px 4px;
-    gap: 8px;
+    grid-template-columns: 30px minmax(0, 1fr) 48px 58px;
+    min-height: 50px;
+    padding: 8px;
+    gap: 6px;
   }
 
   .rank {
@@ -349,10 +346,8 @@
   }
 
   /* Tighten numeric columns */
-  .games,
   .avg,
-  .points,
-  .delta {
+  .points {
     font-size: 13px;
   }
 
@@ -393,13 +388,17 @@
 /* Super small phones: drop emojis to keep columns readable */
 @media (max-width: 380px) {
   .rowButton {
-    grid-template-columns: 20px 1fr 40px 48px 54px 50px;
-    gap: 6px;
+    grid-template-columns: 26px minmax(0, 1fr) 42px 52px;
+    padding-right: 6px;
+    padding-left: 6px;
+    gap: 4px;
   }
 
   .colHeader {
-    grid-template-columns: 38px 1fr 40px 48px 54px 50px;
-    gap: 6px;
+    grid-template-columns: 26px minmax(0, 1fr) 42px 52px;
+    padding-right: 6px;
+    padding-left: 6px;
+    gap: 4px;
   }
 
   .emojis {
@@ -410,10 +409,8 @@
     font-size: 13px;
   }
 
-  .games,
   .avg,
-  .points,
-  .delta {
+  .points {
     font-size: 12px;
   }
 }

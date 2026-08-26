@@ -15,6 +15,7 @@ import type { MouseEvent } from 'react';
 type TableProps = {
   data: Record<string, any>[];
   showEmojis?: boolean;
+  mobileHiddenFields?: string[];
 };
 
 type SortDir = 'asc' | 'desc' | null;
@@ -30,7 +31,11 @@ const formatHeader = (header: string) => {
     .join(' ');
 };
 
-export default function Table({ data, showEmojis = false }: TableProps) {
+export default function Table({
+  data,
+  showEmojis = false,
+  mobileHiddenFields = [],
+}: TableProps) {
   if (!data.length) return null;
 
   const hasNavigate = data.some((row) => typeof row.navigate === 'string');
@@ -90,7 +95,7 @@ export default function Table({ data, showEmojis = false }: TableProps) {
   };
 
   return (
-    <div className={styles.tableContainer}>
+    <div className={styles.tableContainer} data-responsive-table>
       <LayoutGroup>
         <table className={styles.table}>
           <thead>
@@ -111,6 +116,9 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                   <th
                     key={field}
                     data-field={field}
+                    data-mobile-hidden={
+                      mobileHiddenFields.includes(field) || undefined
+                    }
                     onClick={onHeaderClick(field)}
                   >
                     <div>
@@ -135,7 +143,9 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                 );
               })}
 
-              {hasNavigate && <th aria-label="Actions" />}
+              {hasNavigate && (
+                <th className={styles.chevronCell} aria-label="Actions" />
+              )}
             </tr>
           </thead>
 
@@ -177,7 +187,14 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                   {headers.map((header) => {
                     if (header === 'place' || header === 'position') {
                       return (
-                        <td key={header} className={styles.placeCell}>
+                        <td
+                          key={header}
+                          className={styles.placeCell}
+                          data-field={header}
+                          data-mobile-hidden={
+                            mobileHiddenFields.includes(header) || undefined
+                          }
+                        >
                           <div className={styles.placeCellInner}>
                             <div
                               style={{
@@ -206,7 +223,13 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                       const playerPath = `/players/${row.playerSlug}`;
 
                       return (
-                        <td key={header}>
+                        <td
+                          key={header}
+                          data-field={header}
+                          data-mobile-hidden={
+                            mobileHiddenFields.includes(header) || undefined
+                          }
+                        >
                           <div className={styles.playerCellInner}>
                             <a
                               href={playerPath}
@@ -235,7 +258,17 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                       );
                     }
 
-                    return <td key={header}>{row[header]}</td>;
+                    return (
+                      <td
+                        key={header}
+                        data-field={header}
+                        data-mobile-hidden={
+                          mobileHiddenFields.includes(header) || undefined
+                        }
+                      >
+                        {row[header]}
+                      </td>
+                    );
                   })}
 
                   {hasNavigate && (

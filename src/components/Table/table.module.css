@@ -119,8 +119,13 @@
 }
 
 @media (max-width: 680px) {
+  .tableContainer {
+    overflow-x: clip;
+  }
+
   .table {
-    min-width: 540px;
+    min-width: 0;
+    table-layout: fixed;
   }
   .longLabel {
     display: none;
@@ -130,9 +135,113 @@
   }
   .table th,
   .table td {
-    padding: 10px 9px;
+    padding: 8px 6px;
   }
+
   .table th {
     font-size: 0.58rem;
+  }
+
+  .table tbody tr {
+    height: 48px;
+    font-size: 0.69rem;
+  }
+
+  .table [data-mobile-hidden='true'] {
+    display: none;
+  }
+
+  .table th[data-field='place'],
+  .table td[data-field='place'],
+  .table th[data-field='position'],
+  .table td[data-field='position'] {
+    width: 53px;
+  }
+
+  .table th[data-field='game'],
+  .table td[data-field='game'] {
+    width: 44px;
+  }
+
+  .table th[data-field='points'],
+  .table td[data-field='points'] {
+    width: 54px;
+    text-align: right;
+  }
+
+  .table td[data-field='points'] {
+    color: var(--navy);
+    font-weight: 850;
+  }
+
+  .table th[data-field='numberOfPlayers'],
+  .table td[data-field='numberOfPlayers'] {
+    width: 54px;
+    text-align: center;
+  }
+
+  .table th[data-field='Victims'],
+  .table td[data-field='Victims'] {
+    overflow-wrap: anywhere;
+  }
+
+  .placeCellInner,
+  .playerCellInner {
+    gap: 5px;
+  }
+
+  .placeCellInner > div:first-child {
+    width: 26px !important;
+  }
+
+  .avatarLink > span {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .link {
+    display: block;
+    overflow: hidden;
+    font-size: 0.76rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .emojiContainer {
+    overflow: hidden;
+    font-size: 0.64rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .emoji {
+    font-size: 0.82rem;
+  }
+
+  .sortIcon,
+  .chevronCell {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .table th,
+  .table td {
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .table th[data-field='place'],
+  .table td[data-field='place'],
+  .table th[data-field='position'],
+  .table td[data-field='position'] {
+    width: 48px;
+  }
+
+  .table th[data-field='points'],
+  .table td[data-field='points'],
+  .table th[data-field='numberOfPlayers'],
+  .table td[data-field='numberOfPlayers'] {
+    width: 48px;
   }
 }

@@ -319,7 +319,11 @@ const leader = tableData[0];
       <div class={styles.sectionHeader}>
         <h2>Games</h2><p>{gamesTableData.length} results</p>
       </div>
-      <Table client:only="react" data={gamesTableData} />
+      <Table
+        client:only="react"
+        data={gamesTableData}
+        mobileHiddenFields={['date']}
+      />
     </section>
   </div>
 </Layout>
