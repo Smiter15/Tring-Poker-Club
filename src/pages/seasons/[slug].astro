@@ -5,10 +5,10 @@ import { getOrdinal } from 'src/utils';
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 import SeasonLineChart from 'src/components/SeasonProgressLineChart';
-import SeasonLeaderboardBumpChart from 'src/components/SeasonLeaderboardBumpChart';
 import SeasonReplayLeaderboard from 'src/components/SeasonReplayLeaderboard';
+import PlayerAvatar from '@components/PlayerAvatar';
 
-import styles from './_seasons.module.css';
+import styles from '../../styles/detail.module.css';
 
 // 1. Generate static paths for each season
 export async function getStaticPaths() {
@@ -139,7 +139,7 @@ const games = rawGames.map((g: any) => ({
   numberOfPlayers: g.no_of_players,
   winnerFirstName: g.winner?.prefer_nickname
     ? g.winner.nickname
-    : g.winner.first_name,
+    : (g.winner?.first_name ?? 'Result pending'),
   winnerSlug: g.winner?.slug ?? '',
   winnerImage: g.winner?.image_url ?? '',
 }));
@@ -219,38 +219,107 @@ const datasets = lines.map((line: string) => {
 
   return { label: player, data: cumul, avatarUrl: avatarByLabel[player] };
 });
+
+const leader = tableData[0];
 ---
 
 <Layout title={`Season ${season.name}`}>
-  <div class={styles.container}>
-    <h1>Season {season.name}</h1>
+  <header class={styles.hero}>
+    <div class="content-shell">
+      <a class={styles.breadcrumb} href="/seasons"
+        ><span aria-hidden="true">←</span> All seasons</a
+      >
+      <div class={styles.heroGrid}>
+        <div>
+          <p class={styles.heroKicker}>
+            {season.is_active ? 'Current season' : 'Season archive'}
+          </p>
+          <h1>Season {season.name}</h1>
+          <p class={styles.heroMeta}>
+            {
+              season.is_active
+                ? 'The race is still on.'
+                : 'Final standings and every game from the season.'
+            }
+          </p>
+        </div>
+        <div class={styles.heroStats}>
+          <div><strong>{rawGames.length}</strong><span>Games</span></div>
+          <div><strong>{tableData.length}</strong><span>Players</span></div>
+          <div>
+            <strong>{leader?.points ?? 0}</strong><span>Lead points</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
 
-    <h2>{season.is_active ? 'Current standings' : 'Results'}</h2>
+  <div class={`content-shell ${styles.content}`}>
+    {
+      leader && (
+        <section>
+          <div class={styles.sectionHeader}>
+            <h2>{season.is_active ? 'Current leader' : 'Season champion'}</h2>
+          </div>
+          <a class={styles.winnerCard} href={`/players/${leader.playerSlug}`}>
+            <PlayerAvatar
+              displayName={leader.name}
+              imageUrl={leader.playerImage}
+              size="lg"
+              champion
+            />
+            <div>
+              <>
+                <small>
+                  {season.is_active ? 'Leading the table' : 'Champion'}
+                </small>
+                <strong>{leader.name}</strong>
+                <span>
+                  {leader.points} points · {leader.games} games
+                </span>
+              </>
+            </div>
+            <span aria-hidden="true">→</span>
+          </a>
+        </section>
+      )
+    }
 
-    <SeasonReplayLeaderboard
-      client:only="react"
-      labels={dateLabels}
-      datasets={datasets}
-      metaByLabel={metaByLabel}
-      placeByLabel={placeByLabel}
-    />
+    <section>
+      <div class={styles.sectionHeader}>
+        <h2>{season.is_active ? 'Live standings' : 'Final standings'}</h2><p>
+          Choose a game to replay the table
+        </p>
+      </div>
+      <div class={`${styles.panel} ${styles.chartPanel}`}>
+        <SeasonReplayLeaderboard
+          client:only="react"
+          labels={dateLabels}
+          datasets={datasets}
+          metaByLabel={metaByLabel}
+          placeByLabel={placeByLabel}
+        />
+      </div>
+    </section>
 
-    <!-- <h2>Leaderboard Progression</h2>
-    <SeasonLeaderboardBumpChart
-      client:only="react"
-      labels={dateLabels}
-      datasets={datasets}
-      avatarByLabel={avatarByLabel}
-    /> -->
+    <section>
+      <div class={styles.sectionHeader}>
+        <h2>Cumulative points</h2><p>How the race changed week by week</p>
+      </div>
+      <div class={`${styles.panel} ${styles.chartPanel}`}>
+        <SeasonLineChart
+          client:only="react"
+          labels={dateLabels}
+          datasets={datasets}
+        />
+      </div>
+    </section>
 
-    <h2>Cumulative Points</h2>
-    <SeasonLineChart
-      client:only="react"
-      labels={dateLabels}
-      datasets={datasets}
-    />
-
-    <h2>Games</h2>
-    <Table client:only="react" data={gamesTableData} />
+    <section>
+      <div class={styles.sectionHeader}>
+        <h2>Games</h2><p>{gamesTableData.length} results</p>
+      </div>
+      <Table client:only="react" data={gamesTableData} />
+    </section>
   </div>
 </Layout>

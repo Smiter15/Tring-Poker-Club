@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import * as Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
+import { HighchartsReact } from 'highcharts-react-official';
+import 'highcharts/modules/accessibility';
+import { getGeneratedAvatarDetails, isPlaceholderAvatar } from './PlayerAvatar';
 
 export interface SeasonLeaderboardBumpChartProps {
   labels: string[];
@@ -15,14 +17,7 @@ export default function SeasonLeaderboardBumpChart({
   datasets,
   avatarByLabel = {},
 }: SeasonLeaderboardBumpChartProps) {
-  const [themeReady, setThemeReady] = useState(false);
   const chartRef = useRef<HighchartsReact.RefObject>(null);
-
-  useEffect(() => {
-    import('highcharts/themes/brand-light')
-      .then(() => setThemeReady(true))
-      .catch((err) => console.error('Error loading Highcharts theme:', err));
-  }, []);
 
   const { rankSeries } = useMemo(() => {
     const numGames = labels.length;
@@ -65,7 +60,11 @@ export default function SeasonLeaderboardBumpChart({
         name: ds.label,
         data,
         marker: { enabled: false },
-        custom: { avatarUrl: avatarByLabel[ds.label] },
+        custom: {
+          avatarUrl: isPlaceholderAvatar(avatarByLabel[ds.label])
+            ? undefined
+            : avatarByLabel[ds.label],
+        },
 
         // NEW: hover the series => highlight the player's FINAL rank (last point)
         events: {
@@ -101,8 +100,6 @@ export default function SeasonLeaderboardBumpChart({
     return { rankSeries: series };
   }, [datasets, labels.length, avatarByLabel]);
 
-  if (!themeReady) return null;
-
   const options: Highcharts.Options = {
     chart: { type: 'spline', backgroundColor: 'transparent' },
     title: { text: undefined },
@@ -118,7 +115,7 @@ export default function SeasonLeaderboardBumpChart({
     },
 
     yAxis: {
-      title: { text: null },
+      title: { text: undefined },
       reversed: true,
       min: 1,
       max: datasets.length,
@@ -130,10 +127,11 @@ export default function SeasonLeaderboardBumpChart({
       labelFormatter: function () {
         const s: any = this as any;
         const avatar = s?.options?.custom?.avatarUrl;
-        const img = avatar
-          ? `<img src="${avatar}" alt="" style="width:18px;height:18px;border-radius:999px;vertical-align:middle;margin-right:8px" />`
-          : '';
-        return `${img}${s.name}`;
+        const { scheme, initials } = getGeneratedAvatarDetails(s.name);
+        const avatarMarkup = avatar
+          ? `<span aria-hidden="true" style="display:inline-flex;width:18px;height:18px;flex:0 0 18px;border-radius:5px;margin-right:8px;background-image:url('${avatar}');background-size:cover;background-position:center"></span>`
+          : `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;margin-right:8px;background:${scheme.background};color:${scheme.foreground};font-size:8px;font-weight:800">${initials}</span>`;
+        return `${avatarMarkup}${s.name}`;
       },
     },
 

@@ -1,10 +1,25 @@
-.container {
-  max-width: 1080px;
-  margin: 3rem auto 2rem;
+.headerTitle {
+  color: var(--cream);
 }
-
-@media (max-width: 768px) {
-  .container {
-    padding: 0 1rem;
-  }
+.headerIntro {
+  color: #aeb2c0;
+}
+.container {
+  width: min(calc(100% - 32px), 860px);
+  margin: 0 auto;
+  padding: 50px 0 80px;
+}
+.context {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.context span {
+  padding: 6px 10px;
+  border-radius: 99px;
+  background: var(--green-pale);
+  color: var(--green);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }

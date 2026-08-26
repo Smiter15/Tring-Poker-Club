@@ -1,57 +1,84 @@
 ---
 import { supabase } from 'src/db/supabase';
-
 import Layout from '@layouts/Layout.astro';
-import Table from '@components/Table';
+import PlayerDirectory from '@components/PlayerDirectory';
+import styles from '../../styles/collections.module.css';
 
-import styles from './_players.module.css';
-
-const { data: rawPlayers, error } = await supabase
-  .from('players')
-  .select(
-    `
-    id,
-    slug,
-    first_name,
-    last_name,
-    image_url,
-    nickname
+const [
+  { data: rawPlayers, error },
+  { data: allResults, error: resultsError },
+  { data: seasons, error: seasonsError },
+] = await Promise.all([
+  supabase
+    .from('players')
+    .select(
+      `
+    id, slug, first_name, last_name, image_url, nickname
   `,
-  )
-  .order('last_name', { ascending: true });
+    )
+    .order('first_name', { ascending: true }),
+  supabase.from('game_results').select('player_id, place'),
+  supabase.from('seasons').select('winner_id'),
+]);
 
-if (error) {
-  console.error('❌ Failed to load players:', error);
-  throw new Error('Could not load players');
-}
+if (error) throw new Error(`Could not load players: ${error.message}`);
+if (resultsError)
+  throw new Error(`Could not load player stats: ${resultsError.message}`);
+if (seasonsError)
+  throw new Error(`Could not load season champions: ${seasonsError.message}`);
 
-const tableData = await Promise.all(
-  rawPlayers.map(async (p: any) => {
-    const { count: gamesPlayed } = await supabase
-      .from('game_results')
-      .select('*', { count: 'exact', head: true })
-      .eq('player_id', p.id);
-
-    const { count: wins } = await supabase
-      .from('game_results')
-      .select('*', { count: 'exact', head: true })
-      .eq('place', 1)
-      .eq('player_id', p.id);
-
-    return {
-      name: `${p.first_name}${p.nickname ? ` "${p.nickname}"` : ''} ${p.last_name}`,
-      playerImage: p.image_url,
-      playerSlug: p.slug,
-      games: gamesPlayed,
-      wins,
-      navigate: `/players/${p.slug}`,
-    };
-  }),
+const statsByPlayer = (allResults ?? []).reduce(
+  (
+    stats: Record<number, { gamesPlayed: number; wins: number }>,
+    result: any,
+  ) => {
+    const playerStats = stats[result.player_id] ?? { gamesPlayed: 0, wins: 0 };
+    playerStats.gamesPlayed += 1;
+    if (Number(result.place) === 1) playerStats.wins += 1;
+    stats[result.player_id] = playerStats;
+    return stats;
+  },
+  {},
 );
+
+const seasonWinsByPlayer = (seasons ?? []).reduce(
+  (wins: Record<number, number>, season: any) => {
+    if (season.winner_id) {
+      wins[season.winner_id] = (wins[season.winner_id] ?? 0) + 1;
+    }
+    return wins;
+  },
+  {},
+);
+
+const players = (rawPlayers ?? []).map((player: any) => ({
+  slug: player.slug,
+  firstName: player.first_name ?? '',
+  lastName: player.last_name ?? '',
+  nickname: player.nickname,
+  imageUrl: player.image_url,
+  gamesPlayed: statsByPlayer[player.id]?.gamesPlayed ?? 0,
+  wins: statsByPlayer[player.id]?.wins ?? 0,
+  seasonWins: seasonWinsByPlayer[player.id] ?? 0,
+}));
 ---
 
-<Layout title="Players">
-  <div class={styles.container}>
-    <Table client:only="react" data={tableData} />
-  </div>
+<Layout
+  title="Players"
+  description="Meet the players and explore Tring Poker Club stats, wins and results."
+>
+  <header class="page-hero">
+    <div class="content-shell">
+      <p class="page-kicker">Meet the table</p>
+      <h1 class={`page-title ${styles.headerTitle}`}>Players</h1>
+      <p class={`page-intro ${styles.headerIntro}`}>
+        {players.length} regulars, rivals and Wednesday night champions. Pick a player
+        to explore their full record.
+      </p>
+    </div>
+  </header>
+
+  <section class={`content-shell ${styles.collectionSection}`}>
+    <PlayerDirectory client:load players={players} />
+  </section>
 </Layout>

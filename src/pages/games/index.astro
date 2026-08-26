@@ -1,109 +1,110 @@
 ---
 import { supabase } from 'src/db/supabase';
-
 import Layout from '@layouts/Layout.astro';
-import Table from '@components/Table';
-
-import styles from './_games.module.css';
+import PlayerAvatar from '@components/PlayerAvatar';
+import styles from '../../styles/collections.module.css';
 
 const { data: rawGames, error } = await supabase
   .from('games')
   .select(
     `
-    slug,
-    season_id,
-    season_game,
-    played_on,
-    no_of_players,
-    winner:players!games_winner_id_fkey (
-      first_name,
-      nickname,
-      prefer_nickname,
-      slug,
-      image_url
-    )
-  `,
+  slug, season_id, season_game, played_on, no_of_players,
+  winner:players!games_winner_id_fkey(first_name, last_name, nickname, prefer_nickname, slug, image_url)
+`,
   )
-  .order('season_id', { ascending: true })
-  .order('season_game', { ascending: true });
+  .order('season_id', { ascending: false })
+  .order('season_game', { ascending: false });
 
-if (error) {
-  console.error('❌ Failed to load games:', error);
-  throw new Error('Could not load games');
-}
+if (error) throw new Error(`Could not load games: ${error.message}`);
 
-const games = rawGames.map((g: any) => ({
-  slug: g.slug,
-  seasonId: g.season_id,
-  seasonGame: g.season_game,
-  date: g.played_on,
-  numberOfPlayers: g.no_of_players,
-  winnerFirstName: g.winner?.prefer_nickname
-    ? g.winner?.nickname
-    : g.winner?.first_name,
-  winnerSlug: g.winner?.slug ?? '',
-  winnerImage: g.winner?.image_url ?? null,
-}));
-
-const seasonsMap: Record<number, typeof games> = {};
-games.forEach((game) => {
-  (seasonsMap[game.seasonId] ||= []).push(game);
-});
-
-const seasonNumbers = Object.keys(seasonsMap)
-  .map(Number)
-  .sort((a, b) => a - b);
-
-const formatDate = (isoString: string) => {
-  const d = new Date(isoString);
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yy = String(d.getFullYear()).slice(-2);
-
-  return `${dd}/${mm}/${yy}`;
-};
-
-const currentSeason = seasonNumbers[seasonNumbers.length - 1];
-const currentSeasonGames = seasonsMap[currentSeason].map((game) => ({
-  game: game.seasonGame,
-  date: formatDate(game.date),
-  numberOfPlayers: game.numberOfPlayers,
-  winner: game.winnerFirstName,
-  playerSlug: game.winnerSlug,
-  playerImage: game.winnerImage,
-  navigate: `/games/${game.slug}`,
-}));
+const gamesBySeason = (rawGames ?? []).reduce(
+  (groups: Record<string, any[]>, game: any) => {
+    (groups[game.season_id] ||= []).push(game);
+    return groups;
+  },
+  {},
+);
+const seasonIds = Object.keys(gamesBySeason).sort(
+  (a, b) => Number(b) - Number(a),
+);
+const displayName = (player: any) =>
+  !player
+    ? 'Result pending'
+    : player.prefer_nickname && player.nickname
+      ? player.nickname
+      : player.first_name;
+const formatDate = (iso: string) =>
+  new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(iso));
 ---
 
-<Layout title="Games">
-  <div class={styles.container}>
-    <section>
-      <h2>Current season games</h2>
-      <Table client:only="react" data={currentSeasonGames} />
-    </section>
+<Layout
+  title="Games"
+  description="Browse every Tring Poker Club game, winner and result."
+>
+  <header class="page-hero">
+    <div class="content-shell">
+      <p class="page-kicker">Every deal counts</p>
+      <h1 class={`page-title ${styles.headerTitle}`}>Games</h1>
+      <p class={`page-intro ${styles.headerIntro}`}>
+        Results from every Wednesday night game, from the latest showdown back
+        to where the league began.
+      </p>
+    </div>
+  </header>
 
-    <section>
-      <h2>Previous season games</h2>
-      {
-        seasonNumbers.slice(0, -1).map((season) => {
-          const tableData = seasonsMap[season].map((game) => ({
-            game: game.seasonGame,
-            date: formatDate(game.date),
-            numberOfPlayers: game.numberOfPlayers,
-            winner: game.winnerFirstName,
-            playerSlug: game.winnerSlug,
-            playerImage: game.winnerImage,
-            navigate: `/games/${game.slug}`,
-          }));
-
-          return (
-            <section>
-              <h3>Season {season}</h3>
-              <Table client:only="react" data={tableData} />
-            </section>
-          );
-        })
-      }
-    </section>
+  <div class={`content-shell ${styles.collectionSection}`}>
+    {
+      seasonIds.length > 0 ? (
+        seasonIds.map((seasonId, groupIndex) => (
+          <section class={styles.seasonGroup}>
+            <div class={styles.groupHeading}>
+              <h2>Season {seasonId}</h2>
+              <span>
+                {groupIndex === 0 ? 'Current season · ' : ''}
+                {gamesBySeason[seasonId].length} games
+              </span>
+            </div>
+            <div class={styles.gameGrid}>
+              {gamesBySeason[seasonId].map((game: any) => (
+                <a
+                  class={`card card-link ${styles.gameCard}`}
+                  href={`/games/${game.slug}`}
+                >
+                  <div class={styles.gameTop}>
+                    <span>Game {game.season_game}</span>
+                    <span>{formatDate(game.played_on)}</span>
+                  </div>
+                  <h3>Game {game.season_game}</h3>
+                  <div class={styles.gameWinner}>
+                    <PlayerAvatar
+                      firstName={game.winner?.first_name}
+                      lastName={game.winner?.last_name}
+                      displayName={displayName(game.winner)}
+                      imageUrl={game.winner?.image_url}
+                      size="sm"
+                      champion={Boolean(game.winner)}
+                    />
+                    <div>
+                      <small>{game.winner ? 'Winner' : 'Result'}</small>
+                      <strong>{displayName(game.winner)}</strong>
+                    </div>
+                  </div>
+                  <div class={styles.gameBottom}>
+                    <span>{game.no_of_players ?? 0} players</span>
+                    <span aria-hidden="true">→</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        ))
+      ) : (
+        <div class={`card ${styles.empty}`}>No games have been added yet.</div>
+      )
+    }
   </div>
 </Layout>

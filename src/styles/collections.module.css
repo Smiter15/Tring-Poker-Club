@@ -1,0 +1,421 @@
+.headerTitle {
+  color: var(--cream);
+}
+.headerIntro {
+  color: #aeb2c0;
+}
+
+.collectionSection {
+  padding-block: 50px 78px;
+}
+.subsection {
+  margin-top: 48px;
+}
+.subsection:first-child {
+  margin-top: 0;
+}
+.subsectionTitle {
+  margin: 0 0 18px;
+  color: var(--navy);
+  font-size: 1.35rem;
+}
+
+.featureCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  overflow: hidden;
+  padding: clamp(25px, 5vw, 40px);
+  border: 1px solid var(--green-bright);
+  border-radius: var(--radius-lg);
+  background: var(--green);
+  color: white;
+  text-decoration: none;
+  box-shadow: var(--shadow-lg);
+}
+
+.featureCard::after {
+  position: absolute;
+  right: 7%;
+  color: rgb(255 255 255 / 8%);
+  font:
+    9rem/1 Georgia,
+    serif;
+  content: '♠';
+  transform: rotate(10deg);
+}
+.featureCopy {
+  position: relative;
+  z-index: 1;
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 13px;
+  padding: 5px 10px;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 12%);
+  color: #b0edcc;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.status::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6ee7a8;
+  box-shadow: 0 0 0 4px rgb(110 231 168 / 13%);
+  content: '';
+}
+.featureCopy h2 {
+  margin: 0;
+  font-size: clamp(2.1rem, 5vw, 3.5rem);
+}
+.featureStats {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 28px;
+  margin-top: 22px;
+}
+.featureStats strong {
+  display: block;
+  font: 800 1.45rem var(--font-display);
+}
+.featureStats span {
+  display: block;
+  margin-top: 3px;
+  color: #a7e3c3;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+.winner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 240px;
+  padding: 15px 18px;
+  border-radius: 12px;
+  background: rgb(7 45 29 / 52%);
+}
+.winner small {
+  display: block;
+  color: #a7e3c3;
+  font-size: 0.58rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.winner strong {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.rulesCard {
+  margin-top: 24px;
+  padding: 25px;
+}
+.rulesGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+.rule {
+  padding: 14px;
+  border-radius: 9px;
+  background: var(--cream);
+}
+.rule span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.rule strong {
+  display: block;
+  margin-top: 6px;
+  font: 750 1.05rem var(--font-display);
+}
+
+.seasonGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.seasonCard {
+  position: relative;
+  min-height: 230px;
+  overflow: hidden;
+  padding: 22px;
+  border: 0;
+  color: white;
+  text-decoration: none;
+}
+.seasonCard:nth-child(6n + 1) {
+  background: var(--red);
+}
+.seasonCard:nth-child(6n + 2) {
+  background: var(--gold);
+  color: var(--navy);
+}
+.seasonCard:nth-child(6n + 3) {
+  background: var(--teal);
+}
+.seasonCard:nth-child(6n + 4) {
+  background: #5b4a9f;
+}
+.seasonCard:nth-child(6n + 5) {
+  background: #1a6b8a;
+}
+.seasonCard:nth-child(6n + 6) {
+  background: var(--navy-soft);
+}
+.seasonCard::after {
+  position: absolute;
+  top: -20px;
+  right: -6px;
+  font:
+    8rem/1 Georgia,
+    serif;
+  opacity: 0.1;
+  content: attr(data-suit);
+}
+.seasonEyebrow {
+  position: relative;
+  z-index: 1;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+.seasonCard h3 {
+  position: relative;
+  z-index: 1;
+  margin: 8px 0 25px;
+  font-size: 2rem;
+}
+.seasonChampion {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.seasonChampion small {
+  display: block;
+  font-size: 0.55rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.seasonChampion strong {
+  display: block;
+  margin-top: 3px;
+  font: 700 0.9rem var(--font-display);
+}
+.seasonMeta {
+  position: absolute;
+  right: 22px;
+  bottom: 21px;
+  left: 22px;
+  z-index: 1;
+  display: flex;
+  gap: 20px;
+  padding-top: 14px;
+  border-top: 1px solid rgb(255 255 255 / 19%);
+  font: 500 0.67rem var(--font-data);
+  opacity: 0.8;
+}
+
+.playerGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+.playerCard {
+  display: flex;
+  min-height: 230px;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 18px 19px;
+  text-align: center;
+  text-decoration: none;
+}
+.playerCard h2 {
+  margin: 15px 0 4px;
+  font-size: 1.15rem;
+}
+.nickname {
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: italic;
+}
+.playerStats {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.playerStats strong {
+  display: block;
+  font: 800 1.15rem var(--font-display);
+}
+.playerStats span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.55rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.seasonGroup {
+  margin-top: 42px;
+}
+.seasonGroup:first-child {
+  margin-top: 0;
+}
+.groupHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--border);
+}
+.groupHeading h2 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+.groupHeading span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.gameGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.gameCard {
+  display: flex;
+  min-height: 205px;
+  flex-direction: column;
+  padding: 20px;
+  color: inherit;
+  text-decoration: none;
+}
+.gameTop {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.63rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+.gameCard h3 {
+  margin: 17px 0 21px;
+  font-size: 1.65rem;
+}
+.gameWinner {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.gameWinner small {
+  display: block;
+  color: var(--green);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.gameWinner strong {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+}
+.gameBottom {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.67rem;
+}
+.gameBottom span:last-child {
+  color: var(--green);
+  font-size: 0.95rem;
+}
+
+.empty {
+  padding: 34px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 920px) {
+  .rulesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .seasonGrid,
+  .gameGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .playerGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .featureCard {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .winner {
+    width: 100%;
+    min-width: 0;
+  }
+  .playerGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .rulesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .seasonGrid,
+  .gameGrid {
+    grid-template-columns: 1fr;
+  }
+  .playerGrid {
+    gap: 10px;
+  }
+  .playerCard {
+    min-height: 215px;
+    padding-inline: 10px;
+  }
+  .featureStats {
+    gap: 20px;
+  }
+}

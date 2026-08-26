@@ -1,97 +1,326 @@
 ---
+import { supabase } from 'src/db/supabase';
 import Layout from '@layouts/Layout.astro';
-
+import PlayerAvatar from '@components/PlayerAvatar';
 import styles from './_index.module.css';
+
+const [
+  { data: seasonsData },
+  { data: recentGamesData },
+  { count: playerCount = 0 },
+] = await Promise.all([
+  supabase
+    .from('seasons')
+    .select('id, slug, name, is_active')
+    .order('id', { ascending: true }),
+  supabase
+    .from('games')
+    .select(
+      `
+    slug, season_id, season_game, played_on, no_of_players,
+    winner:players!games_winner_id_fkey(first_name, last_name, nickname, prefer_nickname, slug, image_url)
+  `,
+    )
+    .order('played_on', { ascending: false })
+    .limit(3),
+  supabase.from('players').select('*', { count: 'exact', head: true }),
+]);
+
+const seasons = seasonsData ?? [];
+const recentGames = recentGamesData ?? [];
+
+const activeSeason: any =
+  seasons.find((season: any) => season.is_active) ?? seasons.at(-1);
+let standings: any[] = [];
+
+if (activeSeason) {
+  const { data } = await supabase
+    .from('season_results')
+    .select(
+      `
+    place, points,
+    player:players!season_results_player_id_fkey(first_name, last_name, nickname, prefer_nickname, slug, image_url)
+  `,
+    )
+    .eq('season_id', activeSeason.id)
+    .order('place', { ascending: true })
+    .limit(5);
+  standings = data ?? [];
+}
+
+const displayName = (player: any) => {
+  if (!player) return 'Result pending';
+  return player.prefer_nickname && player.nickname
+    ? player.nickname
+    : player.first_name;
+};
+
+const formatDate = (iso: string) =>
+  new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(iso));
+
+const leader = standings[0];
+const totalGames = recentGames.length
+  ? Math.max(...recentGames.map((game: any) => Number(game.season_game) || 0))
+  : 0;
 ---
 
-<Layout title="Home">
-  <div class={styles.hero}>
-    <h1 class={styles.heroTitle}>Tring Poker Club</h1>
-    <p class={styles.heroSubtitle}>Every Wednesday 8pm Con Club, £10 buy in</p>
-    <p class={styles.heroSubtitle}>👋</p>
-  </div>
+<Layout
+  title="Home"
+  description="Tring Poker Club is a friendly Wednesday night poker league at The Con Club in Tring. All abilities are welcome."
+>
+  <section class={styles.hero}>
+    <div class={styles.heroGlow}></div>
+    <div class={`content-shell ${styles.heroContent}`}>
+      <div class={styles.heroCopy}>
+        <div class={styles.livePill}>
+          <span></span>{
+            activeSeason
+              ? `Season ${activeSeason.name} now in play`
+              : 'Wednesday night poker'
+          }
+        </div>
+        <h1>Tring<br /><em>Poker</em> Club</h1>
+        <p>
+          A friendly, competitive Wednesday night league at The Con Club. Good
+          cards help. Good company is guaranteed.
+        </p>
+        <div class={styles.heroActions}>
+          {
+            activeSeason && (
+              <a class="button" href={`/seasons/${activeSeason.slug}`}>
+                View current season <span aria-hidden="true">→</span>
+              </a>
+            )
+          }
+          <a class="button button--ghost" href="#join">How to join</a>
+        </div>
+      </div>
 
-  <section id="how-to-join" class={styles.contentSection}>
-    <div class={styles.anchorOffset}></div>
-    <h2 class={styles.sectionTitle}>How to Join Tring Poker Club</h2>
-    <p>We play every Wednesday at 8pm at the Con Club, Tring.</p>
-    <ul class={styles.infoList}>
-      <li><strong>Location:</strong> 70 High St, Tring HP23 4AF</li>
-      <li>
-        <strong>Contact Email:</strong>
-        <a href="mailto:tringpoker@gmail.com" class={styles.link}
-          >tringpoker@gmail.com</a
+      <div class={styles.heroCard} aria-label="Club highlights">
+        <span class={styles.playingCardSuit} aria-hidden="true">♠</span>
+        <span class={styles.playingCardRank} aria-hidden="true">TPC</span>
+        <div class={styles.heroStats}>
+          <div><strong>{seasons.length}</strong><span>Seasons</span></div>
+          <div><strong>{playerCount ?? 0}</strong><span>Players</span></div>
+          <div>
+            <strong>{totalGames || 'Wed'}</strong><span
+              >{totalGames ? 'Games this season' : 'Every week'}</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {
+    activeSeason && standings.length > 0 && (
+      <section class="page-section">
+        <div class="content-shell">
+          <div class="section-heading">
+            <div>
+              <>
+                <p class="page-kicker">Latest standings</p>
+                <h2 class="section-title">Season {activeSeason.name}</h2>
+              </>
+            </div>
+            <a class="text-link" href={`/seasons/${activeSeason.slug}`}>
+              Full season <span aria-hidden="true">→</span>
+            </a>
+          </div>
+
+          {leader && (
+            <a
+              class={styles.leaderCard}
+              href={`/players/${leader.player?.slug ?? ''}`}
+            >
+              <div class={styles.leaderIdentity}>
+                <PlayerAvatar
+                  firstName={leader.player?.first_name}
+                  lastName={leader.player?.last_name}
+                  displayName={displayName(leader.player)}
+                  imageUrl={leader.player?.image_url}
+                  size="lg"
+                  champion
+                />
+                <div>
+                  <span>Season leader</span>
+                  <h3>{displayName(leader.player)}</h3>
+                  <small>
+                    {leader.player?.nickname && !leader.player?.prefer_nickname
+                      ? `“${leader.player.nickname}”`
+                      : 'Holding the chip lead'}
+                  </small>
+                </div>
+              </div>
+              <div class={styles.leaderData}>
+                <div>
+                  <strong>{leader.points}</strong>
+                  <span>Points</span>
+                </div>
+                <div>
+                  <strong>{leader.place}</strong>
+                  <span>Position</span>
+                </div>
+              </div>
+            </a>
+          )}
+
+          <div class={styles.standingList}>
+            {standings.slice(1).map((standing: any) => (
+              <a
+                class={styles.standingRow}
+                href={`/players/${standing.player?.slug ?? ''}`}
+              >
+                <span class={styles.position}>{standing.place}</span>
+                <PlayerAvatar
+                  firstName={standing.player?.first_name}
+                  lastName={standing.player?.last_name}
+                  displayName={displayName(standing.player)}
+                  imageUrl={standing.player?.image_url}
+                  size="sm"
+                />
+                <span class={styles.playerName}>
+                  {displayName(standing.player)}
+                </span>
+                <span class={styles.points}>
+                  <strong>{standing.points}</strong> pts
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    recentGames.length > 0 && (
+      <section class="page-section page-section--tint">
+        <div class="content-shell">
+          <div class="section-heading">
+            <div>
+              <>
+                <p class="page-kicker">Fresh from the felt</p>
+                <h2 class="section-title">Recent games</h2>
+              </>
+            </div>
+            <a class="text-link" href="/games">
+              All games <span aria-hidden="true">→</span>
+            </a>
+          </div>
+          <div class={styles.gameGrid}>
+            {recentGames.map((game: any, index: number) => (
+              <a
+                class={`card card-link ${styles.gameCard}`}
+                href={`/games/${game.slug}`}
+              >
+                <div class={styles.gameCardTop}>
+                  <span>Season {game.season_id}</span>
+                  <span>{formatDate(game.played_on)}</span>
+                </div>
+                <div class={styles.gameNumber}>Game {game.season_game}</div>
+                <div class={styles.gameWinner}>
+                  <PlayerAvatar
+                    firstName={game.winner?.first_name}
+                    lastName={game.winner?.last_name}
+                    displayName={displayName(game.winner)}
+                    imageUrl={game.winner?.image_url}
+                    size="md"
+                    champion={index === 0}
+                  />
+                  <div>
+                    <small>{game.winner ? 'Winner' : 'Result'}</small>
+                    <strong>{displayName(game.winner)}</strong>
+                  </div>
+                </div>
+                <div class={styles.gameFooter}>
+                  <span>{game.no_of_players ?? 0} players</span>
+                  <span aria-hidden="true">→</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <section id="join" class={`page-section ${styles.joinSection}`}>
+    <div class={`content-shell ${styles.joinGrid}`}>
+      <div>
+        <p class="page-kicker">Pull up a chair</p>
+        <h2 class="section-title">New to poker?<br />You are welcome here.</h2>
+        <p class="page-intro">
+          We play every Wednesday at 8pm at The Con Club in Tring. The
+          atmosphere is relaxed, the league is competitive, and beginners are
+          always welcome.
+        </p>
+        <a class="button" href="mailto:tringpoker@gmail.com"
+          >Email the club <span aria-hidden="true">→</span></a
         >
-      </li>
-      <li>We’re friendly and welcome beginners—come by early and play!</li>
-    </ul>
-    <p>
-      If you have any questions, feel free to email
-      <code>tringpoker@gmail.com</code> or just drop by the Con Club on a Wednesday
-      evening.
-    </p>
+      </div>
+      <div class={`card ${styles.joinDetails}`}>
+        <div>
+          <span aria-hidden="true">⌖</span><p>
+            <small>Where</small><strong>70 High Street, Tring, HP23 4AF</strong>
+          </p>
+        </div>
+        <div>
+          <span aria-hidden="true">◷</span><p>
+            <small>When</small><strong>Every Wednesday, 8pm</strong>
+          </p>
+        </div>
+        <div>
+          <span aria-hidden="true">£</span><p>
+            <small>Buy-in</small><strong>£10 game + £5 league</strong>
+          </p>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <section id="how-to-play" class={styles.contentSection}>
-    <div class={styles.anchorOffset}></div>
-    <h2 class={styles.sectionTitle}>How to Play Poker</h2>
-    <p>
-      Below are the standard, basic poker rules we follow at Tring Poker Club.
-      If you’re new, arrive early and someone will guide you.
-    </p>
-    <h3 class={styles.subSectionTitle}>Basic Rules</h3>
-    <ol class={styles.orderedList}>
-      <li>
-        <strong>Hand Rankings (highest to lowest):</strong>
-        <ul class={styles.infoList}>
-          <li>Royal Flush</li>
-          <li>Straight Flush</li>
-          <li>Four of a Kind</li>
-          <li>Full House</li>
-          <li>Flush</li>
-          <li>Straight</li>
-          <li>Three of a Kind</li>
-          <li>Two Pair</li>
-          <li>One Pair</li>
-          <li>High Card</li>
-        </ul>
-      </li>
-      <li>
-        <strong>Blinds:</strong> We use a small blind and big blind to encourage
-        action.
-      </li>
-      <li>
-        <strong>Dealing:</strong> Each player receives two hole cards (face-down),
-        then a round of betting.
-      </li>
-      <li>
-        <strong>The Flop, Turn &amp; River:</strong>
-        <ul class={styles.infoList}>
-          <li>
-            <em>Flop:</em> Three community cards are dealt face-up. Betting continues.
-          </li>
-          <li>
-            <em>Turn:</em> A fourth community card is dealt face-up. Betting continues.
-          </li>
-          <li>
-            <em>River:</em> A fifth community card is dealt face-up. Final betting
-            round.
-          </li>
-        </ul>
-      </li>
-      <li>
-        <strong>Showdown:</strong> If more than one player remains, the best five-card
-        hand wins the pot.
-      </li>
-    </ol>
-  </section>
-
-  <section class={styles.videoSection}>
-    <div class={styles.videoWrapper}>
-      <iframe
-        src="https://www.youtube.com/embed/CpSewSHZhmo"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen></iframe>
+  <section class={`page-section page-section--tint ${styles.learnSection}`}>
+    <div class="content-shell">
+      <div class="section-heading">
+        <div>
+          <p class="page-kicker">Learn the game</p><h2 class="section-title">
+            Texas Hold’em in ten minutes
+          </h2>
+        </div>
+      </div>
+      <div class={styles.learnGrid}>
+        <div class={styles.videoWrapper}>
+          <iframe
+            src="https://www.youtube-nocookie.com/embed/CpSewSHZhmo"
+            title="How to play Texas Hold'em poker"
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen></iframe>
+        </div>
+        <div class={styles.rulesCard}>
+          <ol>
+            <li>
+              <strong>Two cards each.</strong><span
+                >Your private hole cards.</span
+              >
+            </li>
+            <li>
+              <strong>Five community cards.</strong><span
+                >The flop, turn and river.</span
+              >
+            </li>
+            <li>
+              <strong>Make the best five-card hand.</strong><span
+                >Bet, call, raise or fold along the way.</span
+              >
+            </li>
+          </ol>
+        </div>
+      </div>
     </div>
   </section>
 </Layout>

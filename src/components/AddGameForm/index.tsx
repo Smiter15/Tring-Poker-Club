@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import cn from 'classnames';
 
-import { supabase } from 'src/db/supabase';
-
 import { getOrdinal } from 'src/utils';
 
 import styles from './AddGameForm.module.css';
-import { saveAndDeploy } from 'src/pages/api/save-and-deploy';
+import { saveAndDeploy } from 'src/utils/saveAndDeploy';
 
 type Player = {
   id: number;
@@ -32,14 +30,7 @@ type AddGameFormProps = {
 
 type Result = { position: number; player_id: number; name: string };
 
-const points = [100, 80, 65, 55, 50, 45, 40, 35];
-
-export default function AddGameForm({
-  players,
-  activeSeasonId,
-  seasonGameNumber,
-  nextGameId,
-}: AddGameFormProps) {
+export default function AddGameForm({ players }: AddGameFormProps) {
   const maxPlayers = players.length || 1;
   const [rawNoPlayers, setRawNoPlayers] = useState('1');
   const numericNoPlayers = Math.max(

@@ -5,9 +5,8 @@ import {
   faChevronRight,
   faChevronUp,
   faChevronDown,
-  faUserCircle,
-  faCrown,
 } from '@fortawesome/free-solid-svg-icons';
+import PlayerAvatar from '@components/PlayerAvatar';
 
 import styles from './table.module.css';
 
@@ -35,7 +34,7 @@ export default function Table({ data, showEmojis = false }: TableProps) {
   if (!data.length) return null;
 
   const hasNavigate = data.some((row) => typeof row.navigate === 'string');
-  const headers = Object.keys(data[0]).filter(
+  const headers = Object.keys(data[0] ?? {}).filter(
     (h) =>
       ![
         'navigate',
@@ -141,12 +140,14 @@ export default function Table({ data, showEmojis = false }: TableProps) {
           </thead>
 
           <motion.tbody layout>
-            {sortedData.map((row) => {
+            {sortedData.map((row, rowIndex) => {
               const nav =
                 hasNavigate && typeof row.navigate === 'string'
                   ? row.navigate
                   : null;
-              const key = row.id ?? row.slug ?? row.playerSlug;
+              const key = `${row.id ?? row.slug ?? row.playerSlug ?? 'row'}-${
+                row.navigate ?? rowIndex
+              }-${rowIndex}`;
 
               const placeValue = row.place || row.position;
               const placeNum =
@@ -209,31 +210,15 @@ export default function Table({ data, showEmojis = false }: TableProps) {
                           <div className={styles.playerCellInner}>
                             <a
                               href={playerPath}
-                              style={{
-                                all: 'unset',
-                                cursor: 'pointer',
-                                position: 'relative',
-                              }}
+                              className={styles.avatarLink}
+                              aria-label={`View ${playerName}`}
                             >
-                              {row.place === '1st' && (
-                                <FontAwesomeIcon
-                                  icon={faCrown}
-                                  className={styles.crownIcon}
-                                  color="#FFD700"
-                                />
-                              )}
-                              {row.playerImage ? (
-                                <img
-                                  src={row.playerImage}
-                                  alt={playerName}
-                                  className={styles.playerImage}
-                                />
-                              ) : (
-                                <FontAwesomeIcon
-                                  icon={faUserCircle}
-                                  className={styles.avatarIcon}
-                                />
-                              )}
+                              <PlayerAvatar
+                                displayName={playerName}
+                                imageUrl={row.playerImage}
+                                size="sm"
+                                champion={placeNum === 1}
+                              />
                             </a>
                             <div>
                               <a className={styles.link} href={playerPath}>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import styles from './PlayerSeasonCard.module.css';
+import PlayerAvatar from '@components/PlayerAvatar';
 
 type Rival = {
   opponentName: string;
@@ -180,15 +181,11 @@ export default function PlayerSeasonCard({
                 {stats.ko.rivals.slice(0, 6).map((r) => {
                   const content = (
                     <>
-                      {r.opponentImage ? (
-                        <img
-                          src={r.opponentImage}
-                          alt=""
-                          className={styles.rivalAvatar}
-                        />
-                      ) : (
-                        <div className={styles.rivalAvatarPlaceholder} />
-                      )}
+                      <PlayerAvatar
+                        displayName={r.opponentName}
+                        imageUrl={r.opponentImage}
+                        size="xs"
+                      />
 
                       <span className={styles.rivalName}>{r.opponentName}</span>
 

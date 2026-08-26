@@ -1,31 +1,35 @@
 .page {
-  max-width: 980px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 16px;
+  padding: clamp(38px, 7vw, 72px) 16px 84px;
 }
 
 .h1 {
-  margin: 8px 0 4px;
-  font-size: 28px;
+  margin: 0 0 36px;
+  color: var(--navy);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 7vw, 4.4rem);
   font-weight: 900;
   letter-spacing: -0.02em;
 }
 
 .h2 {
   margin: 0;
-  font-size: 18px;
+  color: var(--navy);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
   font-weight: 850;
   letter-spacing: -0.01em;
 }
 
 .subText {
   margin: 6px 0 0;
-  opacity: 0.75;
+  color: var(--muted);
   font-size: 13px;
 }
 
 .section {
-  margin-top: 18px;
+  margin-top: 52px;
 }
 
 .sectionHeader {
@@ -34,20 +38,24 @@
 
 .cardGrid {
   display: grid;
-  gap: 12px;
+  gap: 15px;
   grid-template-columns: 1fr;
 }
 
 .card {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  background: white;
+  box-shadow: var(--shadow-sm);
 }
 
 .cardLabel {
-  font-size: 12px;
-  opacity: 0.7;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   margin-bottom: 8px;
 }
 
@@ -59,6 +67,7 @@
 }
 
 .cardTitle {
+  font-family: var(--font-display);
   font-weight: 850;
   font-size: 16px;
 }
@@ -83,7 +92,10 @@
 }
 
 .note {
-  margin-top: 10px;
+  margin-top: 14px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  background: var(--gold-pale);
   font-size: 12px;
   opacity: 0.75;
 }
@@ -224,12 +236,21 @@
 
 .medalCard {
   display: block;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
-  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
   text-decoration: none;
   color: inherit;
-  background: rgba(255, 255, 255, 0.7);
+  background: white;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.medalCard:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 .medalHeader {
@@ -268,7 +289,7 @@
   gap: 6px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--cream);
   font-size: 13px;
 }
 

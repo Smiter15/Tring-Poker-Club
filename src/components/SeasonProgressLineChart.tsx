@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type * as HighchartsType from 'highcharts';
+import { getGeneratedAvatarDetails, isPlaceholderAvatar } from './PlayerAvatar';
 
 export interface SeasonLineChartProps {
   labels: string[];
@@ -24,12 +25,13 @@ export default function SeasonLineChart({
       try {
         const hcMod = await import('highcharts');
         const Highcharts = (hcMod as any).default ?? hcMod;
+        await import('highcharts/modules/accessibility');
 
         const reactMod = await import('highcharts-react-official');
         const HighchartsReact =
-          (reactMod as any).default ?? (reactMod as any).HighchartsReact;
-
-        await import('highcharts/themes/brand-light');
+          (reactMod as any).HighchartsReact ??
+          (reactMod as any).default?.HighchartsReact ??
+          (reactMod as any).default;
 
         if (!cancelled) {
           setLibs({ Highcharts, HighchartsReact });
@@ -47,9 +49,9 @@ export default function SeasonLineChart({
   }, []);
 
   const avatarByLabel = useMemo(() => {
-    const map: Record<string, string> = {};
+    const map: Record<string, string | undefined> = {};
     datasets.forEach((d) => {
-      if (d.avatarUrl) map[d.label] = d.avatarUrl;
+      map[d.label] = isPlaceholderAvatar(d.avatarUrl) ? undefined : d.avatarUrl;
     });
     return map;
   }, [datasets]);
@@ -65,7 +67,9 @@ export default function SeasonLineChart({
     marker: { enabled: false },
     lineWidth: 2,
     pointPlacement: 'on',
-    custom: { avatarUrl: ds.avatarUrl } as any,
+    custom: {
+      avatarUrl: isPlaceholderAvatar(ds.avatarUrl) ? undefined : ds.avatarUrl,
+    } as any,
   }));
 
   const options: HighchartsType.Options = {
@@ -86,7 +90,7 @@ export default function SeasonLineChart({
       },
     },
     yAxis: {
-      title: { text: null },
+      title: { text: undefined },
       min: 0,
     },
     legend: {
@@ -97,15 +101,19 @@ export default function SeasonLineChart({
       labelFormatter: function () {
         const s: any = this;
         const avatar = s?.options?.custom?.avatarUrl || avatarByLabel[s.name];
-        const img = avatar
-          ? `<img src="${avatar}" alt="" style="width:18px;height:18px;border-radius:999px;vertical-align:middle;margin-right:8px" />`
-          : '';
-        return `${img}${s.name}`;
+        const { scheme, initials } = getGeneratedAvatarDetails(s.name);
+        const avatarMarkup = avatar
+          ? `<span aria-hidden="true" style="display:inline-flex;width:18px;height:18px;flex:0 0 18px;border-radius:5px;vertical-align:middle;margin-right:8px;background-image:url('${avatar}');background-size:cover;background-position:center"></span>`
+          : `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;vertical-align:middle;margin-right:8px;background:${scheme.background};color:${scheme.foreground};font-size:8px;font-weight:800">${initials}</span>`;
+        return `${avatarMarkup}${s.name}`;
       },
     },
     tooltip: {
       shared: true,
       useHTML: true,
+      outside: true,
+      stickOnContact: true,
+      hideDelay: 200,
       formatter: function (this: any) {
         const pts = (this.points ?? [])
           .slice()
@@ -117,13 +125,14 @@ export default function SeasonLineChart({
           const avatar =
             p.series?.options?.custom?.avatarUrl ||
             avatarByLabel[p.series.name];
-          const img = avatar
-            ? `<img src="${avatar}" alt="" style="width:18px;height:18px;border-radius:999px;vertical-align:middle;margin-right:8px" />`
-            : '';
+          const { scheme, initials } = getGeneratedAvatarDetails(p.series.name);
+          const avatarMarkup = avatar
+            ? `<span aria-hidden="true" style="display:inline-flex;width:18px;height:18px;flex:0 0 18px;border-radius:5px;vertical-align:middle;margin-right:8px;background-image:url('${avatar}');background-size:cover;background-position:center"></span>`
+            : `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;vertical-align:middle;margin-right:8px;background:${scheme.background};color:${scheme.foreground};font-size:8px;font-weight:800">${initials}</span>`;
 
           s +=
             `<tr>` +
-            `<td style="padding-right:6px">${img}</td>` +
+            `<td style="padding-right:6px">${avatarMarkup}</td>` +
             `<td style="color:${p.series.color};padding-right:4px">●</td>` +
             `<td>${p.series.name}:</td>` +
             `<td style="padding-left:4px"><b>${p.y}</b></td>` +

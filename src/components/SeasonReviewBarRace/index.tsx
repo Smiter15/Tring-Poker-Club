@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type * as HighchartsType from 'highcharts';
+import {
+  getGeneratedAvatarDetails,
+  isPlaceholderAvatar,
+} from '../PlayerAvatar';
 import styles from './SeasonReviewBarRace.module.css';
 
 export interface SeasonReviewBarRaceProps {
@@ -54,10 +58,13 @@ export default function SeasonReviewBarRace({
       try {
         const hcMod = await import('highcharts');
         const Highcharts = (hcMod as any).default ?? hcMod;
+        await import('highcharts/modules/accessibility');
 
         const reactMod = await import('highcharts-react-official');
         const HighchartsReact =
-          (reactMod as any).default ?? (reactMod as any).HighchartsReact;
+          (reactMod as any).HighchartsReact ??
+          (reactMod as any).default?.HighchartsReact ??
+          (reactMod as any).default;
 
         if (!cancelled) {
           setLibs({ Highcharts, HighchartsReact });
@@ -77,7 +84,7 @@ export default function SeasonReviewBarRace({
   const avatarByName = useMemo(() => {
     const m: Record<string, string | undefined> = {};
     datasets.forEach((d) => {
-      m[d.label] = d.avatarUrl;
+      m[d.label] = isPlaceholderAvatar(d.avatarUrl) ? undefined : d.avatarUrl;
     });
     return m;
   }, [datasets]);
@@ -170,19 +177,20 @@ export default function SeasonReviewBarRace({
         ) {
           const name = String(this.value ?? '');
           const avatar = avatarByName[name];
-          const img = avatar
-            ? `<img src="${avatar}" alt="" style="width:18px;height:18px;border-radius:999px;vertical-align:middle;margin-left:8px" />`
-            : '';
+          const { scheme, initials } = getGeneratedAvatarDetails(name);
+          const avatarMarkup = avatar
+            ? `<span aria-hidden="true" style="display:inline-flex;width:18px;height:18px;flex:0 0 18px;border-radius:5px;margin-left:8px;background-image:url('${avatar}');background-size:cover;background-position:center"></span>`
+            : `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;margin-left:8px;background:${scheme.background};color:${scheme.foreground};font-size:8px;font-weight:800">${initials}</span>`;
           return `<span style="display:inline-flex;align-items:center;white-space:nowrap;">${escapeHtml(
             name,
-          )}${img}</span>`;
+          )}${avatarMarkup}</span>`;
         },
       },
     },
 
     yAxis: {
       opposite: true,
-      title: { text: null },
+      title: { text: undefined },
       min: 0,
       max: finalMax,
       tickPixelInterval: 120,
@@ -204,7 +212,7 @@ export default function SeasonReviewBarRace({
           enabled: true,
           style: { fontSize: '12px', fontWeight: '600' } as any,
         },
-      },
+      } as any,
     },
 
     tooltip: {
@@ -213,11 +221,12 @@ export default function SeasonReviewBarRace({
         const name = String(this.key ?? '');
         const val = Number(this.y ?? 0);
         const avatar = avatarByName[name];
-        const img = avatar
-          ? `<img src="${avatar}" alt="" style="width:18px;height:18px;border-radius:999px;vertical-align:middle;margin-right:8px" />`
-          : '';
+        const { scheme, initials } = getGeneratedAvatarDetails(name);
+        const avatarMarkup = avatar
+          ? `<span aria-hidden="true" style="display:inline-flex;width:18px;height:18px;flex:0 0 18px;border-radius:5px;margin-right:8px;background-image:url('${avatar}');background-size:cover;background-position:center"></span>`
+          : `<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;margin-right:8px;background:${scheme.background};color:${scheme.foreground};font-size:8px;font-weight:800">${initials}</span>`;
         const label = labels[idx] ?? '';
-        return `<div>${img}<b>${escapeHtml(
+        return `<div>${avatarMarkup}<b>${escapeHtml(
           name,
         )}</b><br/>${escapeHtml(label)}: <b>${val}</b> pts</div>`;
       },

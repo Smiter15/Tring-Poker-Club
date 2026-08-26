@@ -3,5 +3,7 @@ dist
 
 .env
 .env.local
+.astro/dev.json
+.astro/dev.log
 # Local Netlify folder
 .netlify

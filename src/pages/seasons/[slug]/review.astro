@@ -3,6 +3,7 @@ import { supabase } from 'src/db/supabase';
 import Layout from '@layouts/Layout.astro';
 
 import SeasonReviewBarRace from 'src/components/SeasonReviewBarRace';
+import PlayerAvatar from '@components/PlayerAvatar';
 
 import styles from './review.module.css';
 
@@ -226,26 +227,6 @@ const maxAllBy = <T,>(arr: T[], fn: (t: T) => number) => {
   return { items, value: bestVal };
 };
 
-const minBy = <T,>(arr: T[], fn: (t: T) => number) => {
-  let best: T | null = null;
-  let bestVal = Infinity;
-  arr.forEach((x) => {
-    const v = fn(x);
-    if (v < bestVal) {
-      bestVal = v;
-      best = x;
-    }
-  });
-  return best ? { item: best, value: bestVal } : null;
-};
-
-const stddev = (xs: number[]) => {
-  if (xs.length === 0) return 0;
-  const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
-  const v = xs.reduce((acc, x) => acc + (x - mean) * (x - mean), 0) / xs.length;
-  return Math.sqrt(v);
-};
-
 const topNWithTies = <T,>(arr: T[], getValue: (t: T) => number, n: number) => {
   if (!arr.length) return null;
 
@@ -284,11 +265,6 @@ Object.keys(medalsByPlayer).forEach((pidStr) => {
 });
 
 // Per-player list of points (only games they played; for consistency award)
-const pointsListByPlayer: Record<number, number[]> = {};
-Object.keys(medalsByPlayer).forEach((pidStr) => {
-  pointsListByPlayer[Number(pidStr)] = [];
-});
-
 gameResults.forEach((gr: any) => {
   const pid = Number(gr.player_id);
   const gid = Number(gr.game_id);
@@ -299,14 +275,11 @@ gameResults.forEach((gr: any) => {
     pointsPerPlayerPerWeek[pid] = Array(numWeeks).fill(0);
   if (!placePerPlayerPerWeek[pid])
     placePerPlayerPerWeek[pid] = Array(numWeeks).fill(null);
-  if (!pointsListByPlayer[pid]) pointsListByPlayer[pid] = [];
-
   const pts = Number(gr.points) || 0;
   const place = Number(gr.place);
 
   pointsPerPlayerPerWeek[pid][weekIndex] = pts;
   placePerPlayerPerWeek[pid][weekIndex] = Number.isFinite(place) ? place : null;
-  pointsListByPlayer[pid].push(pts);
 });
 
 const raceLabels = games.map((g: any) => `Game ${g.season_game}`);
@@ -352,23 +325,6 @@ Object.keys(placePerPlayerPerWeek).forEach((pidStr) => {
   }
 });
 
-// Most consistent: lowest stddev (with a sensible minimum-games threshold)
-const allConsistency = Object.keys(pointsListByPlayer).map((pidStr) => {
-  const pid = Number(pidStr);
-  const pts = pointsListByPlayer[pid] ?? [];
-  return { pid, games: pts.length, sd: stddev(pts) };
-});
-
-const pickConsistent = (minGames: number) => {
-  const eligible = allConsistency.filter((x) => x.games >= minGames);
-  if (!eligible.length) return null;
-  const best = eligible.slice().sort((a, b) => a.sd - b.sd)[0];
-  return best;
-};
-
-const mostConsistent =
-  pickConsistent(5) ?? pickConsistent(3) ?? pickConsistent(2) ?? null;
-
 // -------- Knockouts (season 4+) ----------
 const hasKnockoutsSupport = Number(seasonId) >= 4;
 
@@ -398,10 +354,6 @@ knockouts.forEach((k: any) => {
   const key = `${killer}:${victim}`;
   koPairsCount[key] = (koPairsCount[key] ?? 0) + 1;
 });
-
-const koKing = Object.entries(koKillsByPlayer)
-  .map(([pid, kills]) => ({ pid: Number(pid), kills }))
-  .sort((a, b) => b.kills - a.kills)[0];
 
 const topRivalries = Object.entries(koPairsCount)
   .map(([key, count]) => {
@@ -551,13 +503,12 @@ const hero = {
         <div class={styles.card}>
           <div class={styles.cardLabel}>Champion</div>
           <div class={styles.cardRow}>
-            {
-              hero.champion?.image ? (
-                <img src={hero.champion.image} alt="" class={styles.avatarLg} />
-              ) : (
-                <div class={styles.avatarLgPlaceholder} />
-              )
-            }
+            <PlayerAvatar
+              displayName={hero.champion?.name}
+              imageUrl={hero.champion?.image}
+              size="md"
+              champion
+            />
             <div class={styles.cardTitle}>{hero.champion?.name}</div>
           </div>
           <div class={styles.cardMeta}>
@@ -638,11 +589,11 @@ const hero = {
                     {a.players.slice(0, 3).map((p: any) => (
                       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0">
                         <div class={styles.cardName} style="min-width:0">
-                          {p.image ? (
-                            <img src={p.image} alt="" class={styles.avatarMd} />
-                          ) : (
-                            <div class={styles.avatarMdPlaceholder} />
-                          )}
+                          <PlayerAvatar
+                            displayName={p.name}
+                            imageUrl={p.image}
+                            size="sm"
+                          />
 
                           {p.slug ? (
                             <a
@@ -717,11 +668,11 @@ const hero = {
               <div class={styles.card}>
                 <div class={styles.rivalryRow}>
                   <div class={styles.rivalrySide}>
-                    {r.killerImage ? (
-                      <img src={r.killerImage} alt="" class={styles.avatarSm} />
-                    ) : (
-                      <div class={styles.avatarSmPlaceholder} />
-                    )}
+                    <PlayerAvatar
+                      displayName={r.killer}
+                      imageUrl={r.killerImage}
+                      size="xs"
+                    />
                     <span class={styles.rivalryName}>{r.killer}</span>
                   </div>
 
@@ -730,11 +681,11 @@ const hero = {
                   </span>
 
                   <div class={styles.rivalrySide}>
-                    {r.victimImage ? (
-                      <img src={r.victimImage} alt="" class={styles.avatarSm} />
-                    ) : (
-                      <div class={styles.avatarSmPlaceholder} />
-                    )}
+                    <PlayerAvatar
+                      displayName={r.victim}
+                      imageUrl={r.victimImage}
+                      size="xs"
+                    />
                     <span class={styles.rivalryName}>{r.victim}</span>
                   </div>
                 </div>
@@ -765,11 +716,11 @@ const hero = {
           medalCabinet.map((r: any) => (
             <a href={`/players/${r.slug}`} class={styles.medalCard}>
               <div class={styles.medalHeader}>
-                {r.image ? (
-                  <img src={r.image} alt="" class={styles.avatarMd} />
-                ) : (
-                  <div class={styles.avatarMdPlaceholder} />
-                )}
+                <PlayerAvatar
+                  displayName={r.name}
+                  imageUrl={r.image}
+                  size="sm"
+                />
 
                 <div class={styles.medalNameBlock}>
                   <div class={styles.medalName}>{r.name}</div>

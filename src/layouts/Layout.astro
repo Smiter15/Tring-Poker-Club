@@ -1,64 +1,123 @@
 ---
-const { title } = Astro.props;
+import './Layout.module.css';
+import '../styles/global.css';
 
-import styles from './Layout.module.css';
+const {
+  title,
+  description = 'Friendly, competitive Wednesday night poker in Tring.',
+} = Astro.props;
+const pathname = Astro.url.pathname;
+const navItems = [
+  { label: 'Home', href: '/' },
+  { label: 'Seasons', href: '/seasons' },
+  { label: 'Games', href: '/games' },
+  { label: 'Players', href: '/players' },
+];
+const isActive = (href: string) =>
+  href === '/' ? pathname === '/' : pathname.startsWith(href);
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="icon" type="image/svg+xml" href="/images/TPC-logo-round.png" />
-    <meta name="generator" content={Astro.generator} />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#191c2d" />
     <meta
       name="format-detection"
       content="telephone=no,date=no,address=no,email=no"
     />
-
-    <title>Tring Poker Club | {title}</title>
+    <link rel="icon" type="image/png" href="/images/TPC-logo-round.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800;9..144,900&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta name="generator" content={Astro.generator} />
+    <title>
+      {title === 'Home' ? 'Tring Poker Club' : `${title} | Tring Poker Club`}
+    </title>
   </head>
-  <body class={styles.body}>
-    <header class={styles.header}>
-      <div class={styles.headerContent}>
-        <div class={styles.logo}>
-          <img
-            src="/images/TPC-logo.jpeg"
-            alt="Tring Poker Club Logo"
-            class={styles.logoImage}
-          />
-          <a href="/" class={styles.logoLink}>Tring Poker Club</a>
+  <body>
+    <div class="site-shell">
+      <a class="skip-link" href="#main-content">Skip to content</a>
+      <header class="site-header">
+        <div class="header-inner">
+          <a href="/" class="brand" aria-label="Tring Poker Club home">
+            <span class="brand-mark" aria-hidden="true">♠</span>
+            <span class="brand-copy"
+              ><strong>Tring</strong><small>Poker Club</small></span
+            >
+          </a>
+
+          <button
+            class="menu-button"
+            type="button"
+            aria-expanded="false"
+            aria-controls="site-navigation"
+          >
+            <span class="visually-hidden">Toggle navigation</span>
+            <span aria-hidden="true"></span><span aria-hidden="true"
+            ></span><span aria-hidden="true"></span>
+          </button>
+
+          <nav
+            id="site-navigation"
+            class="site-nav"
+            aria-label="Main navigation"
+          >
+            {
+              navItems.map((item) => (
+                <a
+                  href={item.href}
+                  class:list={['nav-link', { active: isActive(item.href) }]}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                >
+                  {item.label}
+                </a>
+              ))
+            }
+            <a href="/#join" class="nav-cta"
+              >Join the club <span aria-hidden="true">→</span></a
+            >
+          </nav>
         </div>
+      </header>
 
-        <!-- 1) Hamburger button -->
-        <button
-          class={styles.burger}
-          aria-label="Toggle menu"
-          onclick={`document.getElementById('nav').classList.toggle('${styles.open}')`}
-        >
-          &#9776;
-        </button>
+      <main id="main-content" class="site-main"><slot /></main>
 
-        <!-- 2) Give nav an ID so our button can toggle it -->
-        <nav id="nav" class={styles.nav}>
-          <a class={styles.navLink} href="/#how-to-join">How to Join</a>
-          <a class={styles.navLink} href="/#how-to-play">How to Play</a>
-          <a class={styles.navLink} href="/seasons">Seasons</a>
-          <a class={styles.navLink} href="/games">Games</a>
-          <a class={styles.navLink} href="/players">Players</a>
-        </nav>
-      </div>
-    </header>
+      <footer class="site-footer">
+        <div class="footer-inner">
+          <div>
+            <div class="footer-brand">
+              <span aria-hidden="true">♠</span> Tring Poker Club
+            </div>
+            <p>Friendly Wednesday night poker at The Con Club, Tring.</p>
+          </div>
+          <div class="footer-links" aria-label="Footer navigation">
+            <a href="/seasons">Seasons</a>
+            <a href="/games">Games</a>
+            <a href="/players">Players</a>
+            <a href="mailto:tringpoker@gmail.com">Email us</a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© {new Date().getFullYear()} Tring Poker Club</span>
+          <span>Built by Matt 2</span>
+        </div>
+      </footer>
+    </div>
 
-    <main class={styles.main}>
-      <slot />
-    </main>
-
-    <footer class={styles.footer}>
-      <p>Site built by Matt 2</p>
-      <p>
-        &copy; {new Date().getFullYear()} Tring Poker Club. All rights reserved.
-      </p>
-    </footer>
+    <script>
+      const menuButton = document.querySelector('.menu-button');
+      const navigation = document.querySelector('#site-navigation');
+      menuButton?.addEventListener('click', () => {
+        const isOpen = menuButton.getAttribute('aria-expanded') === 'true';
+        menuButton.setAttribute('aria-expanded', String(!isOpen));
+        navigation?.classList.toggle('open', !isOpen);
+      });
+    </script>
   </body>
 </html>

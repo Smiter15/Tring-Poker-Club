@@ -1,125 +1,186 @@
 ---
 import { supabase } from 'src/db/supabase';
-
 import Layout from '@layouts/Layout.astro';
-import Table from '@components/Table';
+import PlayerAvatar from '@components/PlayerAvatar';
+import styles from '../../styles/collections.module.css';
 
-import styles from './_seasons.module.css';
-
-const { data: rawSeasons, error } = await supabase
-  .from('seasons')
-  .select(
-    `
-    slug,
-    name,
-    is_active,
-    winner:players!seasons_winner_id_fkey (
-      first_name,
-      nickname,
-      prefer_nickname,
-      slug,
-      image_url
-    )
+const [
+  { data: rawSeasons, error },
+  { data: allGames, error: gamesError },
+  { data: allResults, error: resultsError },
+] = await Promise.all([
+  supabase
+    .from('seasons')
+    .select(
+      `
+    id, slug, name, is_active,
+    winner:players!seasons_winner_id_fkey(first_name, last_name, nickname, prefer_nickname, slug, image_url)
   `,
-  )
-  .order('id', { ascending: true });
+    )
+    .order('id', { ascending: false }),
+  supabase.from('games').select('season_id'),
+  supabase.from('season_results').select('season_id'),
+]);
 
-if (error) {
-  console.error('❌ Failed to load seasons:', error);
-  throw new Error('Could not load seasons');
-}
+if (error) throw new Error(`Could not load seasons: ${error.message}`);
+if (gamesError)
+  throw new Error(`Could not load season games: ${gamesError.message}`);
+if (resultsError)
+  throw new Error(`Could not load season results: ${resultsError.message}`);
 
-const seasons = await Promise.all(
-  rawSeasons.map(async (s: any) => {
-    const { count: numberOfGames } = await supabase
-      .from('games')
-      .select('*', { count: 'exact', head: true })
-      .eq('season_id', s.slug);
-
-    const { count: numberOfPlayers } = await supabase
-      .from('season_results')
-      .select('*', { count: 'exact', head: true })
-      .eq('season_id', s.slug);
-
-    return {
-      slug: s.slug,
-      name: s.name,
-      numberOfPlayers,
-      numberOfGames,
-      isActive: s.is_active,
-      winner: {
-        firstName: s.winner.first_name,
-        nickname: s.winner.nickname,
-        preferNickname: s.winner.prefer_nickname,
-        slug: s.winner.slug,
-        imageUrl: s.winner.image_url,
-      },
-    };
-  }),
-);
-
-const currentSeason = seasons.filter((s) => s.isActive)[0];
-const previousSeasons = seasons.filter((s) => !s.isActive);
-
-const currentSeasonTableData = [
-  {
-    season: currentSeason.name,
-    numberOfPlayers: currentSeason.numberOfPlayers,
-    numberOfGames: currentSeason.numberOfGames,
-    leader: currentSeason.winner.preferNickname
-      ? currentSeason.winner.nickname
-      : currentSeason.winner.firstName,
-    playerSlug: currentSeason.winner.slug,
-    playerImage: currentSeason.winner.imageUrl,
-    navigate: `/seasons/${currentSeason.slug}`,
-  },
-];
-
-const previousSeasonsTableData = previousSeasons.map((s) => ({
-  season: s.name,
-  numberOfPlayers: s.numberOfPlayers,
-  numberOfGames: s.numberOfGames,
-  winner: s.winner.preferNickname ? s.winner.nickname : s.winner.firstName,
-  playerSlug: s.winner.slug,
-  playerImage: s.winner.imageUrl,
-  navigate: `/seasons/${s.slug}`,
+const countBySeason = (rows: any[]) =>
+  rows.reduce((counts: Record<string, number>, row: any) => {
+    counts[row.season_id] = (counts[row.season_id] ?? 0) + 1;
+    return counts;
+  }, {});
+const gamesBySeason = countBySeason(allGames ?? []);
+const playersBySeason = countBySeason(allResults ?? []);
+const seasons = (rawSeasons ?? []).map((season: any) => ({
+  ...season,
+  numberOfGames: gamesBySeason[season.id] ?? 0,
+  numberOfPlayers: playersBySeason[season.id] ?? 0,
 }));
+
+const currentSeason = seasons.find((season) => season.is_active);
+const archivedSeasons = seasons.filter((season) => !season.is_active);
+const displayName = (player: any) =>
+  !player
+    ? 'To be decided'
+    : player.prefer_nickname && player.nickname
+      ? player.nickname
+      : player.first_name;
+const suits = ['♠', '♥', '♦', '♣'];
 ---
 
-<Layout title="Seasons">
-  <div class={styles.container}>
-    <section class={styles.rulesSection}>
-      <h2 class={styles.rulesTitle}>Rules for current season</h2>
-      <ul class={styles.rulesList}>
-        <li>£5 contribution to the league</li>
-        <li>£10 buy in for the game</li>
-        <li>Starting stack: 10 000</li>
-        <li>12-minute blinds</li>
-        <li>Starting blinds: 100 / 200</li>
-        <li>
-          Final table (top 8) points:
-          <ul class={styles.pointsList}>
-            <li>1st - 100 points</li>
-            <li>2nd - 80 points</li>
-            <li>3rd - 65 points</li>
-            <li>4th - 55 points</li>
-            <li>5th - 50 points</li>
-            <li>6th - 45 points</li>
-            <li>7th - 40 points</li>
-            <li>8th - 35 points</li>
-          </ul>
-        </li>
-      </ul>
+<Layout
+  title="Seasons"
+  description="Explore current standings and every archived Tring Poker Club season."
+>
+  <header class="page-hero">
+    <div class="content-shell">
+      <p class="page-kicker">Club history</p>
+      <h1 class={`page-title ${styles.headerTitle}`}>Seasons</h1>
+      <p class={`page-intro ${styles.headerIntro}`}>
+        {seasons.length} seasons of Wednesday night poker. Every game, every result,
+        every champion.
+      </p>
+    </div>
+  </header>
+
+  <div class={`content-shell ${styles.collectionSection}`}>
+    {
+      currentSeason && (
+        <section class={styles.subsection}>
+          <h2 class={styles.subsectionTitle}>Currently in play</h2>
+          <a class={styles.featureCard} href={`/seasons/${currentSeason.slug}`}>
+            <div class={styles.featureCopy}>
+              <span class={styles.status}>Active season</span>
+              <h2>Season {currentSeason.name}</h2>
+              <div class={styles.featureStats}>
+                <div>
+                  <>
+                    <strong>{currentSeason.numberOfGames}</strong>
+                    <span>Games</span>
+                  </>
+                </div>
+                <div>
+                  <>
+                    <strong>{currentSeason.numberOfPlayers}</strong>
+                    <span>Players</span>
+                  </>
+                </div>
+              </div>
+            </div>
+            <div class={styles.winner}>
+              <PlayerAvatar
+                firstName={currentSeason.winner?.first_name}
+                lastName={currentSeason.winner?.last_name}
+                displayName={displayName(currentSeason.winner)}
+                imageUrl={currentSeason.winner?.image_url}
+                size="lg"
+                champion
+              />
+              <div>
+                <>
+                  <span>Current leader</span>
+                  <strong>{displayName(currentSeason.winner)}</strong>
+                </>
+              </div>
+            </div>
+          </a>
+        </section>
+      )
+    }
+
+    <section
+      class={`card ${styles.rulesCard}`}
+      aria-labelledby="structure-title"
+    >
+      <h2 id="structure-title" class={styles.subsectionTitle}>
+        Tournament structure
+      </h2>
+      <div class={styles.rulesGrid}>
+        <div class={styles.rule}>
+          <span>Format</span><strong>Freezeout</strong>
+        </div>
+        <div class={styles.rule}>
+          <span>Starting stack</span><strong>10,000</strong>
+        </div>
+        <div class={styles.rule}>
+          <span>Blind levels</span><strong>12 min</strong>
+        </div>
+        <div class={styles.rule}>
+          <span>Opening blinds</span><strong>100 / 200</strong>
+        </div>
+        <div class={styles.rule}>
+          <span>Game buy-in</span><strong>£10</strong>
+        </div>
+        <div class={styles.rule}>
+          <span>League entry</span><strong>£5</strong>
+        </div>
+      </div>
     </section>
 
-    <section>
-      <h2 class={styles.sectionHeader}>Current season</h2>
-      <Table client:only="react" data={currentSeasonTableData} />
-    </section>
-
-    <section>
-      <h2 class={styles.sectionHeader}>Previous seasons</h2>
-      <Table client:only="react" data={previousSeasonsTableData} />
+    <section class={styles.subsection}>
+      <div class="section-heading">
+        <h2 class={styles.subsectionTitle}>Season archive</h2>
+      </div>
+      {
+        archivedSeasons.length > 0 ? (
+          <div class={styles.seasonGrid}>
+            {archivedSeasons.map((season, index) => (
+              <a
+                class={`card-link ${styles.seasonCard}`}
+                href={`/seasons/${season.slug}`}
+                data-suit={suits[index % suits.length]}
+              >
+                <span class={styles.seasonEyebrow}>Completed season</span>
+                <h3>Season {season.name}</h3>
+                <div class={styles.seasonChampion}>
+                  <PlayerAvatar
+                    firstName={season.winner?.first_name}
+                    lastName={season.winner?.last_name}
+                    displayName={displayName(season.winner)}
+                    imageUrl={season.winner?.image_url}
+                    size="sm"
+                    champion={Boolean(season.winner)}
+                  />
+                  <div>
+                    <small>Champion</small>
+                    <strong>{displayName(season.winner)}</strong>
+                  </div>
+                </div>
+                <div class={styles.seasonMeta}>
+                  <span>{season.numberOfGames} games</span>
+                  <span>{season.numberOfPlayers} players</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div class={`card ${styles.empty}`}>No archived seasons yet.</div>
+        )
+      }
     </section>
   </div>
 </Layout>

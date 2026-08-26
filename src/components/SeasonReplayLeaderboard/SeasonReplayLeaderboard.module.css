@@ -1,6 +1,6 @@
 .wrap {
   width: 100%;
-  max-width: 980px;
+  max-width: none;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -12,12 +12,14 @@
 }
 
 .title {
+  color: var(--navy);
+  font-family: var(--font-display);
   font-weight: 800;
   font-size: 18px;
 }
 
 .subTitle {
-  opacity: 0.75;
+  color: var(--muted);
 }
 
 .pinnedSummary {
@@ -48,6 +50,7 @@
 
 .slider {
   width: 100%;
+  accent-color: var(--green);
 }
 
 .sliderLabels {
@@ -85,10 +88,12 @@
   gap: 10px;
   font-size: 12px;
   opacity: 0.7;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border);
   border-bottom: none;
   border-radius: 12px 12px 0 0;
-  background: rgba(0, 0, 0, 0.02);
+  background: #f5f1ea;
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .colRank {
@@ -108,7 +113,7 @@
 }
 
 .board {
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 12px 12px;
   overflow: hidden;
@@ -143,11 +148,11 @@
 }
 
 .rowButton:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--green-pale);
 }
 
 .rowPinned {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--gold-pale);
 }
 
 .rank {

@@ -8,8 +8,9 @@ import FilterableKnockoutChart from '@components/FilterableKnockoutChart';
 
 // NEW
 import PlayerSeasonCard from 'src/components/PlayerSeasonCard';
+import PlayerAvatar from '@components/PlayerAvatar';
 
-import styles from './_players.module.css';
+import styles from '../../styles/detail.module.css';
 
 export async function getStaticPaths() {
   const { data: players, error } = await supabase
@@ -330,100 +331,111 @@ const statsMap: Record<string, KOStat> = {};
   if (amKiller) statsMap[name].kills++;
   else statsMap[name].deaths++;
 });
+
+const totalGames = Object.values(seasonsMap).reduce(
+  (sum, results) => sum + results.length,
+  0,
+);
 ---
 
 <Layout title={`${player.firstName} ${player.lastName}`}>
-  <div class={styles.container}>
-    <section class={styles.profile}>
-      {
-        player.image && (
-          <img
-            src={player.image}
-            alt={`${player.firstName} ${player.lastName}`}
-            class={styles.avatar}
-          />
-        )
-      }
-      <div class={styles.profileInfo}>
-        <h1 class={styles.name}>
-          {player.firstName}
-          {player.nickname ? ` “${player.nickname}”` : ''}
-          {player.lastName}
-        </h1>
-
-        <div class={styles.stats}>
-          <div class={styles.statItem}>
-            <span class={styles.statNumber}>{seasonNumbers.length}</span>
-            <span class={styles.statLabel}>Seasons</span>
-          </div>
-          <div class={styles.statItem}>
-            <span class={styles.statNumber}>
-              {
-                Object.values(seasonsMap).reduce(
-                  (sum, arr) => sum + arr.length,
-                  0,
-                )
-              }
-            </span>
-            <span class={styles.statLabel}>Games</span>
-          </div>
-          <div class={styles.statItem}>
-            <span class={styles.statNumber}>{wins}</span>
-            <span class={styles.statLabel}>Wins</span>
-          </div>
+  <header class={styles.hero}>
+    <div class="content-shell">
+      <a class={styles.breadcrumb} href="/players"
+        ><span aria-hidden="true">←</span> All players</a
+      >
+      <div class={styles.profileHero}>
+        <PlayerAvatar
+          firstName={player.firstName}
+          lastName={player.lastName}
+          imageUrl={player.image}
+          size="xl"
+        />
+        <div class={styles.profileCopy}>
+          <p class={styles.heroKicker}>Player profile</p>
+          <h1>{player.firstName} {player.lastName}</h1>
+          {
+            player.nickname && (
+              <p class={styles.nickname}>“{player.nickname}”</p>
+            )
+          }
+          {player.bio && <p class={styles.bio}>{player.bio}</p>}
         </div>
-
-        {player.bio && <article class={styles.bio}>{player.bio}</article>}
+        <div class={styles.heroStats}>
+          <div><strong>{seasonNumbers.length}</strong><span>Seasons</span></div>
+          <div><strong>{totalGames}</strong><span>Games</span></div>
+          <div><strong>{wins ?? 0}</strong><span>Wins</span></div>
+        </div>
       </div>
-    </section>
+    </div>
+  </header>
 
-    {/* NEW: Season snapshot card (most recent season played + dropdown) */}
-    <PlayerSeasonCard
-      client:only="react"
-      seasons={seasonsForCard}
-      statsBySeasonId={seasonStatsById}
-      defaultSeasonId={defaultSeasonId}
-    />
-
-    <h2>Games by Season</h2>
+  <div class={`content-shell ${styles.content}`}>
     {
-      seasonNumbers.map((seasonId) => {
-        const games = seasonsMap[seasonId]
-          .slice()
-          .sort((a: any, b: any) => a.game.season_game - b.game.season_game);
-
-        const tableData = games.map((r: any) => {
-          const totalPlayers = countsByGame[r.game.id] || 0;
-          return {
-            game: r.game.season_game,
-            date: formatDate(r.game.played_on),
-            position: getOrdinal(r.place),
-            placeNum: r.place,
-            totalPlayers,
-            points: r.points,
-            navigate: `/games/${r.game.slug}`,
-          };
-        });
-
-        return (
-          <section>
-            <h3 style={{ marginTop: '30px' }}>
-              Season {seasonMetaById[seasonId]?.name ?? seasonId}
-            </h3>
-            <Table client:only="react" data={tableData} showEmojis={true} />
-          </section>
-        );
-      })
+      seasonsForCard.length > 0 && (
+        <section>
+          <div class={styles.sectionHeader}>
+            <>
+              <h2>Season snapshot</h2>
+              <p>Switch between seasons for a quick form guide</p>
+            </>
+          </div>
+          <PlayerSeasonCard
+            client:only="react"
+            seasons={seasonsForCard}
+            statsBySeasonId={seasonStatsById}
+            defaultSeasonId={defaultSeasonId}
+          />
+        </section>
+      )
     }
+
+    <section>
+      <div class={styles.sectionHeader}>
+        <h2>Games by season</h2><p>{totalGames} appearances</p>
+      </div>
+      {
+        seasonNumbers.map((seasonId) => {
+          const games = seasonsMap[seasonId]
+            .slice()
+            .sort((a: any, b: any) => a.game.season_game - b.game.season_game);
+
+          const tableData = games.map((r: any) => {
+            const totalPlayers = countsByGame[r.game.id] || 0;
+            return {
+              game: r.game.season_game,
+              date: formatDate(r.game.played_on),
+              position: getOrdinal(r.place),
+              placeNum: r.place,
+              totalPlayers,
+              points: r.points,
+              navigate: `/games/${r.game.slug}`,
+            };
+          });
+
+          return (
+            <div style="margin-top: 28px">
+              <h3>Season {seasonMetaById[seasonId]?.name ?? seasonId}</h3>
+              <Table client:only="react" data={tableData} showEmojis={true} />
+            </div>
+          );
+        })
+      }
+    </section>
 
     {
       rawKOs && rawKOs.length > 0 && (
-        <section style="margin-top:50px">
-          <div>
-            <h2 style="margin-bottom:0">Knockouts vs Opponents</h2>
+        <section>
+          <div class={styles.sectionHeader}>
+            <>
+              <h2>Knockouts vs opponents</h2>
+              <p>Head-to-head elimination record</p>
+            </>
+          </div>
+          <div class={`${styles.panel} ${styles.chartPanel}`}>
             <FilterableKnockoutChart
               client:only="react"
-              rawKOs={rawKOs}
+              rawKOs={rawKOs as any}
               playerId={rawPlayer.id}
             />
           </div>

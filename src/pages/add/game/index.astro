@@ -52,14 +52,26 @@ const { data: players } = await supabase
 ---
 
 <Layout title="Add Game">
+  <header class="page-hero">
+    <div class="content-shell">
+      <p class="page-kicker">Club admin</p>
+      <h1 class={`page-title ${styles.headerTitle}`}>Add game results</h1>
+      <p class={`page-intro ${styles.headerIntro}`}>
+        Record the final table and every knockout from the latest Wednesday
+        game.
+      </p>
+    </div>
+  </header>
   <div class={styles.container}>
-    <h1>
-      Game results for game {seasonGamesCount! + 1} of season {activeSeason?.id}
-    </h1>
+    <div class={styles.context}>
+      <span>Season {activeSeason?.id}</span><span
+        >Game {seasonGamesCount! + 1}</span
+      >
+    </div>
 
     <AddGameForm
       client:only="react"
-      players={players}
+      players={players ?? []}
       activeSeasonId={activeSeason?.id}
       seasonGameNumber={seasonGamesCount! + 1}
       nextGameId={gamesCount! + 1}

@@ -1,5 +1,6 @@
 import * as Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
+import { HighchartsReact } from 'highcharts-react-official';
+import 'highcharts/modules/accessibility';
 
 interface OpponentStat {
   opponentName: string;

@@ -5,8 +5,9 @@ import { getOrdinal } from 'src/utils';
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
 import GameKnockoutNetworkGraph from '@components/GameKnockoutNetworkGraph';
+import PlayerAvatar from '@components/PlayerAvatar';
 
-import styles from './_games.module.css';
+import styles from '../../styles/detail.module.css';
 
 export async function getStaticPaths() {
   const { data: games, error } = await supabase.from('games').select('slug');
@@ -189,35 +190,85 @@ const knockoutTableData = Object.values(grouped).map(
   }
 </style>
 
-<Layout title={`Game ${game.seasonGame}`}>
-  <div class={styles.container}>
-    <h1>
-      Season {game.seasonId} - Game {game.seasonGame}
-    </h1>
-    <p class={styles.date}>{game.date}</p>
-
-    <h2>Winner</h2>
-    <div class={styles.winner}>
-      <img
-        src={game.winnerImage}
-        alt={game.winnerFirstName}
-        class={styles.winnerImage}
-      />
-      <a href={`/players/${game.winnerSlug}`} class={styles.winnerLink}>
-        {game.winnerFirstName}
-      </a>
+<Layout title={`Season ${game.seasonId}, Game ${game.seasonGame}`}>
+  <header class={styles.hero}>
+    <div class="content-shell">
+      <a class={styles.breadcrumb} href="/games"
+        ><span aria-hidden="true">←</span> All games</a
+      >
+      <div class={styles.heroGrid}>
+        <div>
+          <p class={styles.heroKicker}>Season {game.seasonId} · {game.date}</p>
+          <h1>Game {game.seasonGame}</h1>
+          <p class={styles.heroMeta}>
+            Results, points and knockout action from the table.
+          </p>
+        </div>
+        <div class={styles.heroStats}>
+          <div><strong>{game.numberOfPlayers}</strong><span>Players</span></div>
+          <div><strong>{events.length}</strong><span>Knockouts</span></div>
+          <div>
+            <strong>{tableData[0]?.points ?? 0}</strong><span>Win points</span>
+          </div>
+        </div>
+      </div>
     </div>
+  </header>
 
-    <h2>Results</h2>
-    <Table client:only="react" data={tableData} showEmojis={true} />
+  <div class={`content-shell ${styles.content}`}>
+    {
+      game.winnerFirstName && (
+        <section>
+          <div class={styles.sectionHeader}>
+            <h2>Winner</h2>
+          </div>
+          <a
+            class={styles.winnerCard}
+            href={game.winnerSlug ? `/players/${game.winnerSlug}` : '#results'}
+          >
+            <PlayerAvatar
+              displayName={game.winnerFirstName}
+              imageUrl={game.winnerImage}
+              size="lg"
+              champion
+            />
+            <div>
+              <>
+                <small>Game champion</small>
+                <strong>{game.winnerFirstName}</strong>
+                <span>{tableData[0]?.points ?? 0} points</span>
+              </>
+            </div>
+            <span aria-hidden="true">→</span>
+          </a>
+        </section>
+      )
+    }
+
+    <section id="results">
+      <div class={styles.sectionHeader}>
+        <h2>Final table</h2><p>{totalPlayers} players</p>
+      </div>
+      <Table client:only="react" data={tableData} showEmojis={true} />
+    </section>
 
     {
       events.length > 0 && (
-        <>
-          <h2 style={{ marginTop: '50px' }}>Knockouts</h2>
+        <section>
+          <div class={styles.sectionHeader}>
+            <>
+              <h2>Knockouts</h2>
+              <p>{events.length} eliminations recorded</p>
+            </>
+          </div>
           <Table client:only="react" data={knockoutTableData} />
-          <GameKnockoutNetworkGraph client:only="react" events={events} />
-        </>
+          <div
+            class={`${styles.panel} ${styles.chartPanel} ${styles.koGraph}`}
+            style="margin-top: 18px"
+          >
+            <GameKnockoutNetworkGraph client:only="react" events={events} />
+          </div>
+        </section>
       )
     }
   </div>

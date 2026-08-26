@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCrown } from '@fortawesome/free-solid-svg-icons';
+import PlayerAvatar from '@components/PlayerAvatar';
 import styles from './SeasonReplayLeaderboard.module.css';
 
 export interface SeasonReplayLeaderboardProps {
@@ -142,13 +141,11 @@ export default function SeasonReplayLeaderboard({
         {pinnedRow ? (
           <div className={styles.pinnedSummary}>
             <div className={styles.pinnedNameRow}>
-              {pinnedRow.avatarUrl ? (
-                <img
-                  src={pinnedRow.avatarUrl}
-                  alt=""
-                  className={styles.pinnedAvatar}
-                />
-              ) : null}
+              <PlayerAvatar
+                displayName={pinnedRow.label}
+                imageUrl={pinnedRow.avatarUrl}
+                size="xs"
+              />
               <span>{pinnedRow.label}</span>
             </div>
 
@@ -227,18 +224,12 @@ export default function SeasonReplayLeaderboard({
 
               <div className={styles.playerCell}>
                 <div className={styles.avatarWrap}>
-                  {displayRank === 1 ? (
-                    <FontAwesomeIcon
-                      icon={faCrown}
-                      className={styles.crownIcon}
-                    />
-                  ) : null}
-
-                  {r.avatarUrl ? (
-                    <img src={r.avatarUrl} alt="" className={styles.avatar} />
-                  ) : (
-                    <div className={styles.avatarPlaceholder} />
-                  )}
+                  <PlayerAvatar
+                    displayName={r.label}
+                    imageUrl={r.avatarUrl}
+                    size="xs"
+                    champion={displayRank === 1}
+                  />
                 </div>
 
                 <div className={styles.nameBlock}>

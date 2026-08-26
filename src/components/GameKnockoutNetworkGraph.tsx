@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useState } from 'react';
 import type Highcharts from 'highcharts';
+import { getPlayerAvatarUrl, isPlaceholderAvatar } from './PlayerAvatar';
 
 type KOEvent = {
   killerName: string;
@@ -28,12 +29,20 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
         import('highcharts-react-official'),
       ]);
 
-      await import('highcharts/modules/networkgraph');
+      await Promise.all([
+        import('highcharts/modules/networkgraph'),
+        import('highcharts/modules/accessibility'),
+      ]);
 
       if (cancelled) return;
 
       setHC(hcMod.default ?? hcMod);
-      setHCReact(() => reactMod.default ?? (reactMod as any).HighchartsReact);
+      setHCReact(
+        () =>
+          (reactMod as any).HighchartsReact ??
+          (reactMod as any).default?.HighchartsReact ??
+          reactMod.default,
+      );
       setWindowWidth(window.innerWidth);
     }
 
@@ -65,14 +74,18 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
         nodesMap[killerName] = {
           id: killerName,
           name: killerName,
-          imageUrl: killerImage || undefined,
+          imageUrl: isPlaceholderAvatar(killerImage)
+            ? undefined
+            : killerImage || undefined,
         };
       }
       if (!nodesMap[victimName]) {
         nodesMap[victimName] = {
           id: victimName,
           name: victimName,
-          imageUrl: victimImage || undefined,
+          imageUrl: isPlaceholderAvatar(victimImage)
+            ? undefined
+            : victimImage || undefined,
         };
       }
 
@@ -91,25 +104,17 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
     });
 
     const nodesArr = Object.values(nodesMap).map((n) => {
-      if (n.imageUrl) {
-        const size = sizeMap[n.id] || (isMobile ? BASE / 2 : BASE);
-        return {
-          id: n.id,
-          name: n.name,
-          marker: {
-            symbol: `url(${n.imageUrl})`,
-            width: size,
-            height: size,
-            lineWidth: 2,
-            lineColor: '#fff',
-          },
-        };
-      }
-
+      const size = sizeMap[n.id] || (isMobile ? BASE / 2 : BASE);
       return {
         id: n.id,
         name: n.name,
-        marker: { radius: isMobile ? 6 : 12 },
+        marker: {
+          symbol: `url(${getPlayerAvatarUrl(n.name, n.imageUrl)})`,
+          width: size,
+          height: size,
+          lineWidth: 2,
+          lineColor: '#fff',
+        },
       };
     });
 
@@ -209,7 +214,7 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
           },
           formatter(this: any) {
             if (!this.point?.isNode || this.point.fromNode) {
-              return false;
+              return null;
             }
 
             const m = this.point.marker || {};
