@@ -231,7 +231,7 @@ const totalGames = recentGames.length
                     displayName={displayName(game.winner)}
                     imageUrl={game.winner?.image_url}
                     size="md"
-                    champion={index === 0}
+                    champion={Boolean(game.winner)}
                     celebrate={index === 0}
                   />
                   <div>
