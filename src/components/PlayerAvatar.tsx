@@ -69,6 +69,7 @@ type Props = {
   imageUrl?: string | null;
   size?: keyof typeof sizeMap;
   champion?: boolean;
+  celebrate?: boolean;
   className?: string;
 };
 
@@ -119,6 +120,7 @@ export default function PlayerAvatar({
   imageUrl,
   size = 'md',
   champion = false,
+  celebrate = false,
   className = '',
 }: Props) {
   const fullName =
@@ -171,7 +173,7 @@ export default function PlayerAvatar({
       )}
       {champion && (
         <span
-          className={styles.crown}
+          className={`${styles.crown} ${celebrate ? styles.celebrate : ''}`}
           aria-label="Champion"
           role="img"
           style={{

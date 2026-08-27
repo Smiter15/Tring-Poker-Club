@@ -229,6 +229,7 @@ export default function SeasonReplayLeaderboard({
                     imageUrl={r.avatarUrl}
                     size="xs"
                     champion={displayRank === 1}
+                    celebrate={displayRank === 1}
                   />
                 </div>
 

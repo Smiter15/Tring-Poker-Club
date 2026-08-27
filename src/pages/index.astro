@@ -145,6 +145,7 @@ const totalGames = recentGames.length
                   imageUrl={leader.player?.image_url}
                   size="lg"
                   champion
+                  celebrate
                 />
                 <div>
                   <span>Season leader</span>
@@ -231,6 +232,7 @@ const totalGames = recentGames.length
                     imageUrl={game.winner?.image_url}
                     size="md"
                     champion={index === 0}
+                    celebrate={index === 0}
                   />
                   <div>
                     <small>{game.winner ? 'Winner' : 'Result'}</small>
