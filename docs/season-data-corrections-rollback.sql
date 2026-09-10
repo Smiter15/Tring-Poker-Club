@@ -1,0 +1,45 @@
+-- Undo only the exact correction values; stops if later edits changed them.
+BEGIN;
+LOCK TABLE public.games, public.game_results, public.season_results IN SHARE ROW EXCLUSIVE MODE;
+DO $rollback$
+DECLARE changed integer;
+BEGIN
+  DELETE FROM public.season_results WHERE season_id IS NOT DISTINCT FROM 4 AND player_id IS NOT DISTINCT FROM 22 AND place IS NOT DISTINCT FROM 25 AND points IS NOT DISTINCT FROM 0;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: season_results {"season_id":4,"player_id":22}'; END IF;
+  UPDATE public.season_results SET points = 130 WHERE season_id IS NOT DISTINCT FROM 4 AND player_id IS NOT DISTINCT FROM 14 AND points IS NOT DISTINCT FROM 125;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: season_results {"season_id":4,"player_id":14}'; END IF;
+  UPDATE public.season_results SET points = 695 WHERE season_id IS NOT DISTINCT FROM 4 AND player_id IS NOT DISTINCT FROM 13 AND points IS NOT DISTINCT FROM 685;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: season_results {"season_id":4,"player_id":13}'; END IF;
+  UPDATE public.season_results SET points = 61 WHERE season_id IS NOT DISTINCT FROM 1 AND player_id IS NOT DISTINCT FROM 5 AND points IS NOT DISTINCT FROM 52;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: season_results {"season_id":1,"player_id":5}'; END IF;
+  UPDATE public.games SET no_of_players = 15 WHERE id IS NOT DISTINCT FROM 36 AND no_of_players IS NOT DISTINCT FROM 13;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: games {"id":36}'; END IF;
+  UPDATE public.games SET no_of_players = 14 WHERE id IS NOT DISTINCT FROM 32 AND no_of_players IS NOT DISTINCT FROM 16;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: games {"id":32}'; END IF;
+  UPDATE public.games SET no_of_players = 11 WHERE id IS NOT DISTINCT FROM 31 AND no_of_players IS NOT DISTINCT FROM 12;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: games {"id":31}'; END IF;
+  UPDATE public.games SET no_of_players = 8 WHERE id IS NOT DISTINCT FROM 5 AND no_of_players IS NOT DISTINCT FROM 9;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: games {"id":5}'; END IF;
+  UPDATE public.game_results SET season_id = 1 WHERE game_id IS NOT DISTINCT FROM 43 AND player_id IS NOT DISTINCT FROM 20 AND season_id IS NOT DISTINCT FROM 3;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: game_results {"game_id":43,"player_id":20}'; END IF;
+  UPDATE public.game_results SET season_id = -1 WHERE game_id IS NOT DISTINCT FROM 43 AND player_id IS NOT DISTINCT FROM 13 AND season_id IS NOT DISTINCT FROM 3;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: game_results {"game_id":43,"player_id":13}'; END IF;
+  UPDATE public.game_results SET season_id = -1 WHERE game_id IS NOT DISTINCT FROM 4 AND player_id IS NOT DISTINCT FROM 4 AND season_id IS NOT DISTINCT FROM 1;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: game_results {"game_id":4,"player_id":4}'; END IF;
+  UPDATE public.games SET winner_id = 14 WHERE id IS NOT DISTINCT FROM 41 AND winner_id IS NOT DISTINCT FROM 3;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 1 THEN RAISE EXCEPTION 'Rollback precondition failed: games {"id":41}'; END IF;
+END;
+$rollback$;
+COMMIT;

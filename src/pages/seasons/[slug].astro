@@ -1,6 +1,7 @@
 ---
 import { supabase } from 'src/db/supabase';
 import { getOrdinal } from 'src/utils';
+import { buildSeasonProgress } from 'src/utils/seasonProgress';
 
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
@@ -92,16 +93,39 @@ if (resultsError || !rawResults) {
   throw new Error('Season results not found');
 }
 
-// 6. Load all granular game results to build emoji map
-const { data: allGameResults, error: allResultsError } = await supabase
-  .from('game_results')
-  .select('player_id, place, game_id')
-  .eq('season_id', seasonId);
+// Load every result through its parent game, including seasons exceeding the API row limit.
+const allGameResults: any[] = [];
+if (rawGames.length > 0) {
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await supabase
+      .from('game_results')
+      .select(
+        `player_id, place, game_id, points,
+        player:players!game_results_player_id_fkey(
+          id, first_name, nickname, prefer_nickname, image_url
+        )`,
+      )
+      .in(
+        'game_id',
+        rawGames.map((game) => game.id),
+      )
+      .order('game_id')
+      .order('player_id')
+      .range(offset, offset + 499);
 
-if (allResultsError) {
-  console.error('❌ Could not load game results:', allResultsError);
-  throw new Error('Game results not found');
+    if (error || !data) {
+      console.error('❌ Could not load game results:', error);
+      throw new Error('Game results not found');
+    }
+    allGameResults.push(...data);
+    if (data.length < 500) break;
+  }
 }
+
+const gameOrder = new Map(rawGames.map((game, index) => [game.id, index]));
+allGameResults.sort(
+  (a, b) => gameOrder.get(a.game_id)! - gameOrder.get(b.game_id)!,
+);
 
 // Determine max place per game for 'last place' emoji
 const maxPlaceByGame: Record<number, number> = {};
@@ -145,33 +169,26 @@ const games = rawGames.map((g: any) => ({
 }));
 
 // Build tableData with average points per game
-const tableData = await Promise.all(
-  rawResults.map(async (r: any) => {
-    const playerId = r.player.id;
-    const { count: gamesPlayed } = await supabase
-      .from('game_results')
-      .select('*', { count: 'exact', head: true })
-      .eq('season_id', seasonId)
-      .eq('player_id', playerId);
+const tableData = rawResults.map((r: any) => {
+  const playerId = r.player.id;
+  const numGames = allGameResults.filter(
+    (result) => result.player_id === playerId,
+  ).length;
+  const pts = r.points;
+  const avgPoints = numGames > 0 ? parseFloat((pts / numGames).toFixed(2)) : 0;
 
-    const numGames = gamesPlayed || 0;
-    const pts = r.points;
-    const avgPoints =
-      numGames > 0 ? parseFloat((pts / numGames).toFixed(2)) : 0;
-
-    return {
-      place: getOrdinal(r.place),
-      placeNum: r.place, // ✅ NEW: numeric place from season_results (tie-aware)
-      name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
-      playerSlug: r.player.slug,
-      playerImage: r.player.image_url,
-      games: numGames,
-      avgPoints,
-      points: pts,
-      emojis: emojisByPlayerId[playerId] || '',
-    };
-  }),
-);
+  return {
+    place: getOrdinal(r.place),
+    placeNum: r.place, // ✅ NEW: numeric place from season_results (tie-aware)
+    name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
+    playerSlug: r.player.slug,
+    playerImage: r.player.image_url,
+    games: numGames,
+    avgPoints,
+    points: pts,
+    emojis: emojisByPlayerId[playerId] || '',
+  };
+});
 
 // Prepare games table rows
 const gamesTableData = games.map((g) => ({
@@ -183,10 +200,6 @@ const gamesTableData = games.map((g) => ({
   playerImage: g.winnerImage,
   navigate: `/games/${g.slug}`,
 }));
-
-const avatarByLabel = Object.fromEntries(
-  tableData.map((r) => [r.name, r.playerImage]),
-);
 
 const metaByLabel = Object.fromEntries(
   tableData.map((r) => [
@@ -200,25 +213,24 @@ const placeByLabel = Object.fromEntries(
   tableData.map((r) => [r.name, r.placeNum]),
 );
 
-// Cumulative points chart setup
-const csvRaw = await import(`../../data/season/season-${slug}.csv?raw`);
-const lines = csvRaw.default.trim().split('\n');
-const headers = lines.shift()!.split(',');
-const dateLabels = headers.slice(1);
-
-const datasets = lines.map((line: string) => {
-  const cols = line.split(',');
-  const player = cols[0];
-  const points = cols.slice(1).map((val: string) => parseInt(val) || 0);
-  const cumul: number[] = [];
-  points.reduce((sum: number, p: number, i: number) => {
-    const next = sum + p;
-    cumul[i] = next;
-    return next;
-  }, 0);
-
-  return { label: player, data: cumul, avatarUrl: avatarByLabel[player] };
-});
+// Both the replay and cumulative chart use the same database game history.
+// Include participants even if a season standing has not been created for them yet.
+const progressPlayers = new Map<number, any>();
+rawResults.forEach((result: any) =>
+  progressPlayers.set(result.player.id, result.player),
+);
+allGameResults.forEach((result) =>
+  progressPlayers.set(result.player.id, result.player),
+);
+const { labels: dateLabels, datasets } = buildSeasonProgress(
+  rawGames,
+  allGameResults,
+  [...progressPlayers.values()].map((player) => ({
+    id: player.id,
+    label: player.prefer_nickname ? player.nickname : player.first_name,
+    avatarUrl: player.image_url,
+  })),
+);
 
 const leader = tableData[0];
 ---

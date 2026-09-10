@@ -120,6 +120,14 @@ export default function SeasonReplayLeaderboard({
 
   const showSeasonHint = SEASON_WEEKS > playedGames;
 
+  if (playedGames === 0) {
+    return (
+      <div className={styles.wrap}>
+        No results yet. The leaderboard will appear after the first game.
+      </div>
+    );
+  }
+
   return (
     <div className={styles.wrap}>
       <div className={styles.header}>
