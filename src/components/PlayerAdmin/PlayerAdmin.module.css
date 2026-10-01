@@ -1,0 +1,132 @@
+.stack {
+  display: grid;
+  gap: 20px;
+}
+.card,
+.success {
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: white;
+  box-shadow: var(--shadow-sm);
+}
+.card h2 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+.card p,
+.success p {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 20px;
+}
+.heading a,
+.success a {
+  color: var(--green);
+  font-weight: 800;
+}
+.form {
+  display: grid;
+  gap: 18px;
+  margin-top: 22px;
+}
+.form label {
+  display: grid;
+  gap: 7px;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.form input:not([type='checkbox']),
+.form textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--navy);
+  background: var(--cream);
+  font: inherit;
+  font-weight: 400;
+}
+.form input:focus,
+.form textarea:focus {
+  outline: 3px solid rgb(27 110 75 / 15%);
+  border-color: var(--green);
+}
+.form textarea {
+  resize: vertical;
+}
+.twoColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.form .checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
+}
+.hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.form button {
+  min-height: 44px;
+  padding: 11px 18px;
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  background: var(--green);
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+.form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.error {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff2ef;
+  color: #a52d20 !important;
+}
+.success {
+  border-color: var(--green);
+  background: var(--green-pale);
+}
+.success strong {
+  color: var(--green);
+}
+.suit {
+  display: inline-block;
+  color: var(--green);
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+@media (max-width: 600px) {
+  .twoColumns {
+    grid-template-columns: 1fr;
+  }
+  .heading {
+    flex-direction: column;
+  }
+}

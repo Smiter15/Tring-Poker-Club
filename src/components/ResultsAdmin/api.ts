@@ -13,8 +13,7 @@ export async function login(password: string) {
   const { data, error } = await supabase.rpc('club_admin_login', {
     p_password: password,
   });
-  if (error)
-    throw new Error('Could not unlock results entry. Please try again.');
+  if (error) throw new Error('Could not unlock club admin. Please try again.');
   if (data.error) throw new Error(data.error);
   return data as { token: string; expiresAt: string };
 }

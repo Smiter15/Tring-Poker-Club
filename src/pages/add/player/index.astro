@@ -1,0 +1,18 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import PlayerAdmin from '../../../components/PlayerAdmin';
+import styles from '../game/_addGame.module.css';
+---
+
+<Layout title="Add a player" description="Add a new Tring Poker Club player.">
+  <header class="page-hero">
+    <div class="content-shell">
+      <p class="page-kicker">Club admin</p>
+      <h1 class={`page-title ${styles.headerTitle}`}>Add a player</h1>
+      <p class={`page-intro ${styles.headerIntro}`}>
+        Add someone new to the roster so they can take part in future games.
+      </p>
+    </div>
+  </header>
+  <div class={styles.container}><PlayerAdmin client:only="react" /></div>
+</Layout>
