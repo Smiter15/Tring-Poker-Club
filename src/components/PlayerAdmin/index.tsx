@@ -130,7 +130,9 @@ export default function PlayerAdmin() {
       }
       setCreated({
         slug: data.slug,
-        name: `${request.entry.first_name.trim()} ${request.entry.last_name.trim()}`,
+        name: [request.entry.first_name.trim(), request.entry.last_name.trim()]
+          .filter(Boolean)
+          .join(' '),
         rebuild: data.rebuild,
       });
       setEntry(emptyEntry());
@@ -224,9 +226,8 @@ export default function PlayerAdmin() {
               />
             </label>
             <label>
-              Last name{' '}
+              Last name <span className={styles.hint}>Optional</span>
               <input
-                required
                 maxLength={80}
                 autoComplete="family-name"
                 value={entry.last_name}
