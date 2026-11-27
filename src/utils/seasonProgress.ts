@@ -45,6 +45,7 @@ export function buildSeasonProgress(
     datasets: players.map((player) => {
       let total = 0;
       return {
+        playerId: player.id,
         label: player.label,
         avatarUrl: player.avatarUrl,
         data: orderedGames.map((game) => {

@@ -19,6 +19,7 @@ test('orders games and carries points across absences and zero-point finishes', 
     [{ id: 1, label: 'Alex' }, { id: 2, label: 'Alex' }, { id: 3, label: 'Sam' }],
   );
   assert.deepEqual(result.labels, ['09/09/2026', '16/09/2026', '23/09/2026']);
+  assert.deepEqual(result.datasets.map((row) => row.playerId), [1, 2, 3]);
   assert.deepEqual(result.datasets.map((row) => row.data), [[100, 100, 165], [0, 0, 80], [0, 0, 0]]);
 });
 

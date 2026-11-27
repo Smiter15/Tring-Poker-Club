@@ -1,6 +1,7 @@
 ---
 import { supabase } from 'src/db/supabase';
 import { getOrdinal } from 'src/utils';
+import { playerName } from 'src/utils/playerName';
 
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
@@ -56,6 +57,7 @@ const { data: rawResultsData, error: resultsError } = await supabase
     points,
     player:players!game_results_player_id_fkey(
       first_name,
+      last_name,
       nickname,
       prefer_nickname,
       slug,
@@ -100,7 +102,7 @@ const game = {
 
 const tableData = rawResults.map((r) => ({
   place: getOrdinal(r.place),
-  name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
+  name: playerName(r.player),
   playerSlug: r.player.slug,
   playerImage: r.player.image_url,
   points: r.points,
@@ -115,6 +117,7 @@ const { data: rawKOs, error: koError } = await supabase
     killer:players!game_knockouts_killer_id_fkey(
       slug,
       first_name,
+      last_name,
       nickname,
       prefer_nickname,
       image_url
@@ -122,6 +125,7 @@ const { data: rawKOs, error: koError } = await supabase
     victim:players!game_knockouts_victim_id_fkey(
       slug,
       first_name,
+      last_name,
       nickname,
       prefer_nickname,
       image_url
@@ -133,30 +137,31 @@ const { data: rawKOs, error: koError } = await supabase
 if (koError) {
   console.error('❌ Could not load knockouts:', koError);
 }
-const displayName = (p: any) => (p.prefer_nickname ? p.nickname : p.first_name);
-
 const events = (rawKOs ?? []).map((k: any) => ({
-  killerName: displayName(k.killer),
+  killerName: playerName(k.killer),
   killerSlug: k.killer.slug,
   killerImage: k.killer.image_url,
-  victimName: displayName(k.victim),
+  victimName: playerName(k.victim),
   victimSlug: k.victim.slug,
   victimImage: k.victim.image_url,
 }));
 
 const grouped = events.reduce(
   (acc, ev) => {
-    const key = ev.killerName;
+    const key = ev.killerSlug;
     if (!acc[key]) {
       acc[key] = {
         killerName: ev.killerName,
         killerSlug: ev.killerSlug,
         killerImage: ev.killerImage,
-        victims: {} as Record<string, number>,
+        victims: {} as Record<string, { name: string; count: number }>,
       };
     }
-    acc[key].victims[ev.victimName] =
-      (acc[key].victims[ev.victimName] || 0) + 1;
+    const victim = acc[key].victims[ev.victimSlug] ??= {
+      name: ev.victimName,
+      count: 0,
+    };
+    victim.count++;
     return acc;
   },
   {} as Record<
@@ -165,7 +170,7 @@ const grouped = events.reduce(
       killerName: string;
       killerSlug: string;
       killerImage: string;
-      victims: Record<string, number>;
+      victims: Record<string, { name: string; count: number }>;
     }
   >,
 );
@@ -176,8 +181,8 @@ const knockoutTableData = Object.values(grouped).map(
     playerSlug: killerSlug,
     playerImage: killerImage,
 
-    Victims: Object.entries(victims)
-      .map(([victim, count]) => `${victim}${count > 1 ? ` (${count})` : ''}`)
+    Victims: Object.values(victims)
+      .map(({ name, count }) => `${name}${count > 1 ? ` (${count})` : ''}`)
       .join(', '),
   }),
 );

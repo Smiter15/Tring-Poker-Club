@@ -4,11 +4,11 @@ import styles from './SeasonReplayLeaderboard.module.css';
 
 export interface SeasonReplayLeaderboardProps {
   labels: string[]; // Game 1..N (played so far)
-  datasets: { label: string; data: number[]; avatarUrl?: string }[]; // cumulative points
+  datasets: { playerId: number; label: string; data: number[]; avatarUrl?: string }[];
   initialGameIndex?: number; // default last game
 
-  metaByLabel?: Record<
-    string,
+  metaByPlayerId?: Record<
+    number,
     {
       games?: number;
       avgPoints?: number;
@@ -17,10 +17,11 @@ export interface SeasonReplayLeaderboardProps {
   >;
 
   // tie-aware final standings place (e.g. 1,2,2,4...)
-  placeByLabel?: Record<string, number | undefined>;
+  placeByPlayerId?: Record<number, number | undefined>;
 }
 
 type Row = {
+  playerId: number;
   label: string;
   points: number;
   rank: number; // computed rank for that game (dense ranking)
@@ -40,8 +41,8 @@ export default function SeasonReplayLeaderboard({
   labels,
   datasets,
   initialGameIndex,
-  metaByLabel = {},
-  placeByLabel = {},
+  metaByPlayerId = {},
+  placeByPlayerId = {},
 }: SeasonReplayLeaderboardProps) {
   const playedGames = labels.length;
   const maxGameIndex = Math.max(0, playedGames - 1);
@@ -49,18 +50,19 @@ export default function SeasonReplayLeaderboard({
   const [gameIndex, setGameIndex] = useState<number>(
     initialGameIndex ?? maxGameIndex,
   );
-  const [pinned, setPinned] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<number | null>(null);
 
   const { rowsByGame } = useMemo(() => {
     const numGames = labels.length;
 
     const pointsByGame: Array<
-      Array<{ label: string; points: number; avatarUrl?: string }>
+      Array<{ playerId: number; label: string; points: number; avatarUrl?: string }>
     > = Array.from({ length: numGames }, () => []);
 
     datasets.forEach((ds) => {
       for (let i = 0; i < numGames; i++) {
         pointsByGame[i].push({
+          playerId: ds.playerId,
           label: ds.label,
           points: ds.data[i] ?? 0,
           avatarUrl: ds.avatarUrl,
@@ -68,7 +70,7 @@ export default function SeasonReplayLeaderboard({
       }
     });
 
-    const ranksByGame: Array<Map<string, number>> = Array.from(
+    const ranksByGame: Array<Map<number, number>> = Array.from(
       { length: numGames },
       () => new Map(),
     );
@@ -79,8 +81,7 @@ export default function SeasonReplayLeaderboard({
         .sort((a, b) => b.points - a.points || a.label.localeCompare(b.label));
 
       sorted.forEach((p, idx) => {
-        // dense ranking for replay; tie-aware only on final via placeByLabel
-        ranksByGame[i].set(p.label, idx + 1);
+        ranksByGame[i].set(p.playerId, idx + 1);
       });
     }
 
@@ -90,11 +91,12 @@ export default function SeasonReplayLeaderboard({
         .sort((a, b) => b.points - a.points || a.label.localeCompare(b.label));
 
       return sorted.map((p) => {
-        const rank = ranksByGame[i].get(p.label)!;
-        const prevRank = i > 0 ? ranksByGame[i - 1].get(p.label)! : rank;
+        const rank = ranksByGame[i].get(p.playerId)!;
+        const prevRank = i > 0 ? ranksByGame[i - 1].get(p.playerId)! : rank;
         const deltaRank = prevRank - rank;
 
         return {
+          playerId: p.playerId,
           label: p.label,
           points: p.points,
           rank,
@@ -110,12 +112,12 @@ export default function SeasonReplayLeaderboard({
   const rows = rowsByGame[gameIndex] ?? [];
   const isFinalPlayedGame = gameIndex === playedGames - 1;
 
-  const pinnedRow = pinned ? rows.find((r) => r.label === pinned) : undefined;
-  const pinnedMeta = pinnedRow ? metaByLabel[pinnedRow.label] : undefined;
+  const pinnedRow = rows.find((r) => r.playerId === pinned);
+  const pinnedMeta = pinnedRow ? metaByPlayerId[pinnedRow.playerId] : undefined;
 
   const pinnedDisplayRank =
-    pinnedRow && isFinalPlayedGame && placeByLabel[pinnedRow.label] != null
-      ? (placeByLabel[pinnedRow.label] as number)
+    pinnedRow && isFinalPlayedGame && placeByPlayerId[pinnedRow.playerId] != null
+      ? placeByPlayerId[pinnedRow.playerId]
       : pinnedRow?.rank;
 
   const showSeasonHint = SEASON_WEEKS > playedGames;
@@ -211,18 +213,18 @@ export default function SeasonReplayLeaderboard({
 
       <div className={styles.board}>
         {rows.map((r) => {
-          const isPinned = pinned === r.label;
-          const meta = metaByLabel[r.label] ?? {};
+          const isPinned = pinned === r.playerId;
+          const meta = metaByPlayerId[r.playerId] ?? {};
 
           const displayRank =
-            isFinalPlayedGame && placeByLabel[r.label] != null
-              ? (placeByLabel[r.label] as number)
+            isFinalPlayedGame && placeByPlayerId[r.playerId] != null
+              ? (placeByPlayerId[r.playerId] as number)
               : r.rank;
 
           return (
             <button
-              key={r.label}
-              onClick={() => setPinned(isPinned ? null : r.label)}
+              key={r.playerId}
+              onClick={() => setPinned(isPinned ? null : r.playerId)}
               className={`${styles.rowButton} ${
                 isPinned ? styles.rowPinned : ''
               }`}

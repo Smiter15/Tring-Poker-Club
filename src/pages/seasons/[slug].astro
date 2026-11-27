@@ -2,6 +2,7 @@
 import { supabase } from 'src/db/supabase';
 import { getOrdinal } from 'src/utils';
 import { buildSeasonProgress } from 'src/utils/seasonProgress';
+import { playerName } from 'src/utils/playerName';
 
 import Layout from '@layouts/Layout.astro';
 import Table from '@components/Table';
@@ -78,6 +79,7 @@ const { data: rawResults, error: resultsError } = await supabase
     player:players!season_results_player_id_fkey (
       id,
       first_name,
+      last_name,
       nickname,
       prefer_nickname,
       slug,
@@ -102,7 +104,7 @@ if (rawGames.length > 0) {
       .select(
         `player_id, place, game_id, points,
         player:players!game_results_player_id_fkey(
-          id, first_name, nickname, prefer_nickname, image_url
+          id, first_name, last_name, nickname, prefer_nickname, image_url
         )`,
       )
       .in(
@@ -178,9 +180,10 @@ const tableData = rawResults.map((r: any) => {
   const avgPoints = numGames > 0 ? parseFloat((pts / numGames).toFixed(2)) : 0;
 
   return {
+    playerId,
     place: getOrdinal(r.place),
     placeNum: r.place, // ✅ NEW: numeric place from season_results (tie-aware)
-    name: r.player.prefer_nickname ? r.player.nickname : r.player.first_name,
+    name: playerName(r.player),
     playerSlug: r.player.slug,
     playerImage: r.player.image_url,
     games: numGames,
@@ -201,16 +204,16 @@ const gamesTableData = games.map((g) => ({
   navigate: `/games/${g.slug}`,
 }));
 
-const metaByLabel = Object.fromEntries(
+const metaByPlayerId = Object.fromEntries(
   tableData.map((r) => [
-    r.name,
+    r.playerId,
     { games: r.games, avgPoints: r.avgPoints, emojis: r.emojis },
   ]),
 );
 
 // ✅ NEW: tie-aware final place map (1,2,2,4 etc)
-const placeByLabel = Object.fromEntries(
-  tableData.map((r) => [r.name, r.placeNum]),
+const placeByPlayerId = Object.fromEntries(
+  tableData.map((r) => [r.playerId, r.placeNum]),
 );
 
 // Both the replay and cumulative chart use the same database game history.
@@ -227,7 +230,7 @@ const { labels: dateLabels, datasets } = buildSeasonProgress(
   allGameResults,
   [...progressPlayers.values()].map((player) => ({
     id: player.id,
-    label: player.prefer_nickname ? player.nickname : player.first_name,
+    label: playerName(player),
     avatarUrl: player.image_url,
   })),
 );
@@ -309,8 +312,8 @@ const leader = tableData[0];
           client:only="react"
           labels={dateLabels}
           datasets={datasets}
-          metaByLabel={metaByLabel}
-          placeByLabel={placeByLabel}
+          metaByPlayerId={metaByPlayerId}
+          placeByPlayerId={placeByPlayerId}
         />
       </div>
     </section>

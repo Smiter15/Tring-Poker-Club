@@ -4,8 +4,10 @@ import { getPlayerAvatarUrl, isPlaceholderAvatar } from './PlayerAvatar';
 
 type KOEvent = {
   killerName: string;
+  killerSlug: string;
   killerImage: string | null;
   victimName: string;
+  victimSlug: string;
   victimImage: string | null;
 };
 
@@ -69,19 +71,19 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
     const killCounts: Record<string, number> = {};
     const linkCounts: Record<string, number> = {};
 
-    events.forEach(({ killerName, killerImage, victimName, victimImage }) => {
-      if (!nodesMap[killerName]) {
-        nodesMap[killerName] = {
-          id: killerName,
+    events.forEach(({ killerName, killerSlug, killerImage, victimName, victimSlug, victimImage }) => {
+      if (!nodesMap[killerSlug]) {
+        nodesMap[killerSlug] = {
+          id: killerSlug,
           name: killerName,
           imageUrl: isPlaceholderAvatar(killerImage)
             ? undefined
             : killerImage || undefined,
         };
       }
-      if (!nodesMap[victimName]) {
-        nodesMap[victimName] = {
-          id: victimName,
+      if (!nodesMap[victimSlug]) {
+        nodesMap[victimSlug] = {
+          id: victimSlug,
           name: victimName,
           imageUrl: isPlaceholderAvatar(victimImage)
             ? undefined
@@ -89,9 +91,9 @@ export default function GameKnockoutNetworkGraph({ events }: Props) {
         };
       }
 
-      killCounts[killerName] = (killCounts[killerName] || 0) + 1;
+      killCounts[killerSlug] = (killCounts[killerSlug] || 0) + 1;
 
-      const key = `${killerName}|${victimName}`;
+      const key = `${killerSlug}|${victimSlug}`;
       linkCounts[key] = (linkCounts[key] || 0) + 1;
     });
 
